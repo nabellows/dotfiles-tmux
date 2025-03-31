@@ -35,3 +35,9 @@ done
 
 source_file ./plugins.sh
 
+for f in post/*; do
+  if [[ -f "$f" ]]; then
+    source_file "$f"
+  fi
+done
+
