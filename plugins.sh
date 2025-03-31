@@ -6,17 +6,21 @@
 
 TPM_PATH="$TMUX_PLUGIN_MANAGER_PATH/tpm"
 
-tmux source - <<EOF
+# As it turns out, tpm was never using actual set -g values (as I suspected)
+#  and instead trying to be clever and parse your config file for you
+# It obviously fails spectacularly for my layout, so revert to the 'deprecated'
+#  (but in some comments, "un-deprecated") syntax to actually make it a set-option value
+tmux set -g @tpm_plugins "
 
-set -g @plugin 'tmux-plugins/tpm'
-set -g @plugin 'catppuccin/tmux'
-set -g @plugin 'tmux-plugins/tmux-cpu'
-set -g @plugin 'tmux-plugins/tmux-battery'
-set -g @plugin 'sainnhe/tmux-fzf'
-set -g @plugin 'tmux-plugins/tmux-prefix-highlight'
-set -g @plugin 'alexwforsythe/tmux-which-key'
+tmux-plugins/tpm
+catppuccin/tmux
+tmux-plugins/tmux-cpu
+tmux-plugins/tmux-battery
+sainnhe/tmux-fzf
+tmux-plugins/tmux-prefix-highlight
+alexwforsythe/tmux-which-key
 
-EOF
+"
 
 if [[ ! -d "$TPM_PATH" ]]; then
   # Pretty sure user will never see this since tmux won't have started for them
