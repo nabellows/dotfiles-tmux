@@ -139,6 +139,7 @@ done
 
 # = - FZF pane layout
 bind "=" run -b "#{@fzf_scripts}/pane.sh layout"
+bind e "$equalize"
 
 bind "C-s" setw synchronize-panes
 
