@@ -6,7 +6,7 @@ CTPN_PLUG_SCRIPT="$CTPN_PLUG_DIR/catppuccin.tmux"
 
 dir_color="#{@thm_blue}"
 dir_text="#(_NO_NICKNAME=1 useful-dir #{pane_current_path})"
-win_text=" #(_SHORT_PKG=1 tmux-win-name2 '#{window_id}' >/dev/null)#{E:@my_window_name_formatted}"
+win_text=" #(_SHORT_PKG=1 #{@scripts}/tmux-win-name '#{window_id}' >/dev/null)#{E:@my_window_name_formatted}"
 
 tmux source - <<EOF
 
