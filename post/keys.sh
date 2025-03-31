@@ -184,9 +184,8 @@ bind "M-;" send-prefix
 
 bind R source -F '#{@config_file}'
 
-bind "Space" run -b "#{@fzf_scripts}/keybinding.sh"
-#TODO: seems broken (needs to be post), don't want to use the yaml strategy they prefer...
-# bind "?" show-wk-menu-root
+bind "C-Space" run -b "#{@fzf_scripts}/keybinding.sh"
+bind "Space" show-wk-menu-root
 
 # Copy Mode
 # TODO: better copy mode plugins and workflows
