@@ -11,10 +11,6 @@ function get() {
   tmux display-message -p -t "$window_id" "$@"
 }
 
-function get-color() {
-  get "#{@thm_$1}"
-}
-
 #TODO: make all formatting optional
 #TODO: see if there are some common tools to usefully shorten a directory name, or build one
 # preferred logic would shorten to the capital letters and keep a suffix, and maybe render a ... unicode char in place of shortened
@@ -24,19 +20,28 @@ function get-color() {
 current_path=$(get "#{pane_current_path}")
 window_name=$(get "#{window_name}")
 current_command=$(get "#{pane_current_command}")
+tty=$(get "#{s|/dev/||:pane_tty}")
 
 dir_text=$(useful-dir "$current_path")
 dir_color_short="$dir_text"
 if nickname=$(dir-nickname "$current_path"); then
-  dir_color_short="#[fg=$(get-color mauve)]$nickname#[fg=white]"
-  dir_color_short="#[fg=#{@thm_mauve}]$nickname#[fg=white]"
+  dir_color_short="#[fg=#{@thm_lavender}]$nickname#[fg=white]"
   dir_text="$nickname ($dir_text)"
 fi
 full_name="$dir_text - [$current_command]"
 
+# Copied from keys.sh not_tmux logic
+# (Temporary?) workaround for the wrapped shortcomings
+function is-nvim() {
+  nvim_args=($(pgrep 'nvim' | xargs ps -o tty= -o state= -o args= -p | rg "^$tty +(R|S\\S*\\+)(.*)" -m1 -o -r '${2}'))
+  local res=$?
+  nvim_file=${nvim_args[2]}
+  return $res
+}
+
 if [[ "$window_name" == "$current_command" || -z $window_name ]]; then
-  if [[ "$current_command" == 'nvim' ]]; then
-    formatted="#[fg=green,bold]\uf36f#[fg=white,italics,nobold] $dir_color_short#[fg=white,noitalics]"
+  if is-nvim; then
+    formatted="#[fg=green]\uf36f${nvim_file:+ $nvim_file}#[fg=white,italics,nobold] $dir_color_short#[fg=white,noitalics]"
   elif [[ "$current_command" =~ "zsh|bash" ]]; then
     formatted="#[fg=white,italics]$dir_color_short#[fg=white,noitalics]"
   else
@@ -49,7 +54,6 @@ fi
 tmux set-window-option -t $window_id @my_window_name_formatted "$(printf "$formatted")" # printf for unicode escape
 tmux set-window-option -t $window_id @my_window_name "$full_name"
 tmux set-window-option -t $window_id @my_window_index "$full_name"
-#TODO: implement a more generic (consistent, regardless of nicknames) var meant for fzf and similar column-based queries (called "index" ? )
-echo -e "$formatted"
-# echo -e "$full_name"
+
+echo -e "$full_name"
 
