@@ -1,10 +1,12 @@
 #!/bin/bash
 
+#TODO: Find a way to manipulate/override CTPN logic to allow dynamic resourcing to work
+
 # Yes, ik its gross, its because the repo is catppuccin as prefix instead of suffix ('catppuccin/tmux')
 CTPN_PLUG_DIR="$TMUX_PLUGINS_PATH/tmux/"
 CTPN_PLUG_SCRIPT="$CTPN_PLUG_DIR/catppuccin.tmux"
 
-dir_color="#{@thm_blue}"
+dir_color="#{@thm_lavender}"
 dir_text="#(_NO_NICKNAME=1 useful-dir #{pane_current_path})"
 win_text=" #(_SHORT_PKG=1 #{@scripts}/tmux-win-name '#{window_id}' >/dev/null)#{E:@my_window_name_formatted}"
 
@@ -27,11 +29,14 @@ set -g @catppuccin_directory_text " $dir_text"
 set -g @catppuccin_application_color "#{@thm_rosewater}"
 
 set -g @catppuccin_cpu_icon " "
+set -g @catppuccin_cpu_text " #{l:#{cpu_percentage}}"
+set -g @catppuccin_cpu_color "#{l:#{cpu_fg_color}}"
 set -g @catppuccin_status_cpu_text_fg "#{l:#{cpu_fg_color}}"
 set -g @catppuccin_status_cpu_text_bg "#{l:#{cpu_bg_color}}"
-set -g @catppuccin_cpu_text " #{l:#{cpu_percentage}}"
 
-set -g @catppuccin_cpu_color "#{l:#{cpu_fg_color}}"
+set -g @catppuccin_battery_color "#{@thm_teal}"
+
+# CPU plugin settings
 
 set -g @cpu_low_fg_color "#{E:@thm_fg}"
 set -g @cpu_medium_fg_color "#{E:@thm_yellow}"
