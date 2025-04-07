@@ -16,8 +16,10 @@ not_tmux_hacked="#{&&:#{>:#{@escape_nav_keys},0},#{!=:1,#{pane_in_mode}}}"
 #
 # So... combine them for fastest nav within nvim/fzf, but slower regular tmux nav :(
 # Works pretty well!
+# TODO: see tmux-win-name, need to be better at parsing the state
+
 not_tmux="pgrep '$not_tmux_pattern' | xargs ps -o tty= -o state= -p | grep -iqE '^#{s|/dev/||:pane_tty} +(R|S\+)'"
-not_tmux_hybrid="test $not_tmux_fast = 1 || pgrep '$not_tmux_pattern' | xargs ps -o tty= -o state= -p | grep -iqE '^#{s|/dev/||:pane_tty} +(R|S\+)'"
+not_tmux_hybrid="test $not_tmux_fast = 1 || $not_tmux"
 
 split_args='-c "#{pane_current_path}"'
 equalize='select-layout -E'
@@ -33,19 +35,12 @@ bind u display '#{@escape_nav_keys}'
 # Have a workaround tho
 bind "C-f" run -b '#{@fzf_scripts}/../main.sh'
 
-function bind_escapable_common() {
-    local key="$1"
-    shift
-    # Think this is only necessary for vim version (vim-aware need to assume not vim in zoom mode)
-    # bind -T copy-mode-vi "$key" "$@"
-    bind "$key" send-keys
-}
-
 function bind_escapable() {
     local key="$1"
     shift
     bind -n "$key" "$@"
-    bind_escapable_common "$key" "$@"
+    bind "$key" send-keys
+    bind -T copy-mode-vi "$key" "$@"
 }
 
 function bind_escapable_vim_aware() {
@@ -53,11 +48,13 @@ function bind_escapable_vim_aware() {
     shift
     if [[ $_TMUX_ESCAPE_NAV_ENABLED = 1 ]]; then
         bind -n "$key" if -F "$not_tmux_hacked" send-keys "$*"
+        bind "$key" if -F "$not_tmux_hacked" "$*" send-keys
     else
         # For whatver reason I'm having so much trouble getting bash and tmux to both play nice with quoting and/or braces
         tmux source - <<EOF
         # bind -n "$key" if "$not_tmux_hybrid" send-keys { $* }
         bind -n "$key" if -F "$not_tmux_fast" send-keys { if "$not_tmux" send-keys { $* } }
+        bind "$key" if -F "$not_tmux_fast" { if "$not_tmux" send-keys { $* } } send-keys
 EOF
     fi
     bind_escapable_common "$key" "$@"
