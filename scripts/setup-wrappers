@@ -5,7 +5,7 @@
 if [[ -z $_TMUX_ESCAPE_NAV_ENABLED ]]; then
   export _TMUX_ESCAPE_NAV_ENABLED=1
 fi
-if [[ -n "$TMUX" && $_TMUX_ESCAPE_NAV_ENABLED = 1 && -z $_TMUX_ESCAPE_NAV_SETUP ]]; then
+if [[ $_TMUX_ESCAPE_NAV_ENABLED = 1 && -z $_TMUX_ESCAPE_NAV_SETUP ]]; then
   __configure_tmux_wrappers() {
     # Allow user to specify TMUX_ESCAPED_PROGRAMS as a *space-separated* list (so that it can be portably read in keys.sh as well)
     if [[ ! -v TMUX_ESCAPED_PROGRAMS ]]; then
@@ -29,21 +29,22 @@ if [[ -n "$TMUX" && $_TMUX_ESCAPE_NAV_ENABLED = 1 && -z $_TMUX_ESCAPE_NAV_SETUP 
     local src_dir="$(realpath $script_dir/../escape-nav)"
     local out_dir="$src_dir/bin"
 
+    local tmux_path=$(command -v tmux 2>/dev/null)
+    [[ -n "$tmux_path" ]] || { >&2 echo "Failed to find _TMUX_REAL_PATH, cannot create wrappers"; return 1 }
+    export _TMUX_REAL_PATH="$tmux_path"
+
     for cmd_name in $(echo $TMUX_ESCAPED_PROGRAMS); do
       if [[ ! -f "$out_dir/$cmd_name" ]]; then
         >&2 echo "Compiling tmux wrapper for $cmd_name..."
         SRC_DIR="$src_dir" OUT_DIR="$out_dir" "$script_dir/make-tmux-escaped-binary" "$cmd_name" || return 1
       fi
-      local real_path=$(command -v "$cmd_name" 2>/dev/null)
-      if [[ -n "$real_path" ]]; then
+      local cmd_path=$(command -v "$cmd_name" 2>/dev/null)
+      [[ -n "$cmd_path" ]] || { >&2 echo "Failed to find real path for $cmd_name, cannot create wrapper" }
+      if [[ -n "$cmd_path" ]]; then
         local upper_cmd_name=$(printf "%s" "$cmd_name" | tr '[:lower:]' '[:upper:]')
-        export "_${upper_cmd_name}_REAL_PATH=$real_path"
+        export "_${upper_cmd_name}_REAL_PATH=$cmd_path"
       fi
     done
-
-    local tmux_path=$(command -v tmux 2>/dev/null)
-    [[ -n "$tmux_path" ]] && export _TMUX_REAL_PATH="$tmux_path"
-    export PATH="$out_dir:$PATH"
 
     # If user has changed TMUX_ESCAPED_PROGRAMS we should clean up because they are still on the path
     local f
@@ -54,8 +55,12 @@ if [[ -n "$TMUX" && $_TMUX_ESCAPE_NAV_ENABLED = 1 && -z $_TMUX_ESCAPE_NAV_SETUP 
         rm "$out_dir/$f" 2>/dev/null
       fi
     done
+    export _TMUX_ESCAPE_NAV_BIN="$out_dir"
     export _TMUX_ESCAPE_NAV_SETUP=1
   }
-
   __configure_tmux_wrappers || >&2 echo "Failed to setup tmux program wrappers"
+fi
+# Actually add to path if in TMUX
+if [[ -n "$TMUX" && -d "$_TMUX_ESCAPE_NAV_BIN" && "$_TMUX_ESCAPE_NAV_SETUP" = 1 ]]; then
+  export PATH="$_TMUX_ESCAPE_NAV_BIN:$PATH"
 fi
