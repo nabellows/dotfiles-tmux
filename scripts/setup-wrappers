@@ -1,7 +1,7 @@
 #!/bin/zsh
 # bash compatible though
 
-if [[ -n "$TMUX" && -n $_TMUX_ESCAPE_NAV_ENABLED ]]; then
+if [[ -n "$TMUX" && -z $_TMUX_ESCAPE_NAV_ENABLED ]]; then
   __configure_tmux_wrappers() {
     if [[ -z $TMUX_ESCAPED_PROGRAMS ]]; then
       export TMUX_ESCAPED_PROGRAMS=(fzf nvim)
