@@ -1,0 +1,45 @@
+#!/bin/zsh
+# bash compatible though
+
+if [[ -n "$TMUX" && -n $_TMUX_ESCAPE_NAV_ENABLED ]]; then
+  __configure_tmux_wrappers() {
+    if [[ -z $TMUX_ESCAPED_PROGRAMS ]]; then
+      export TMUX_ESCAPED_PROGRAMS=(fzf nvim)
+    fi
+
+    local script_dir
+    if (( ${#BASH_SOURCE[@]} > 1 )); then
+      # If the script is sourced (Bash): BASH_SOURCE will have more than 1 element
+      script_dir=$(dirname "${BASH_SOURCE[0]}")
+    elif [[ -n "$ZSH_VERSION" ]]; then
+      # If it's Zsh, no idea how this works but chatgpt said so
+      script_dir=$(dirname "${(%):-%x}")
+    else
+      return 1
+    fi
+
+    local src_dir="$(realpath $script_dir/../escape-nav)"
+    local out_dir="$src_dir/bin"
+
+    for cmd_name in "${TMUX_ESCAPED_PROGRAMS[@]}"; do
+      if [[ ! -f "$out_dir/$cmd_name" ]]; then
+        >&2 echo "Compiling tmux wrapper for $cmd_name..."
+        SRC_DIR="$src_dir" OUT_DIR="$out_dir" "$script_dir/make-tmux-escaped-binary" "$cmd_name" || return 1
+      fi
+      local real_path=$(command -v "$cmd_name" 2>/dev/null)
+      if [[ -n "$real_path" ]]; then
+        local upper_cmd_name=$(printf "%s" "$cmd_name" | tr '[:lower:]' '[:upper:]')
+        export "_${upper_cmd_name}_REAL_PATH=$real_path"
+        export _TMUX_ESCAPE_NAV_ENABLED=1
+      fi
+    done
+
+    if [[ $_TMUX_ESCAPE_NAV_ENABLED = 1 ]]; then
+        local tmux_path=$(command -v tmux 2>/dev/null)
+        [[ -n "$tmux_path" ]] && export _TMUX_REAL_PATH="$tmux_path"
+        export PATH="$out_dir:$PATH"
+    fi
+  }
+
+  __configure_tmux_wrappers || >&2 echo "Failed to setup tmux program wrappers"
+fi

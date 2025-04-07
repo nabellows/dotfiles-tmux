@@ -1,0 +1,49 @@
+#!/bin/zsh
+
+src_dir="${SRC_DIR:-$(dirname $(realpath $0))}"
+out_dir="${OUT_DIR:-"$src_dir/bin"}"
+mkdir -p "$out_dir"
+compilers=(g++ clang++)
+if [[ -z $CXX ]]; then
+  for c in ${compilers[@]}; do
+    if command -v "$c" >/dev/null 2>&1; then
+      CXX="$c"
+      break
+    fi
+  done
+fi
+if [[ -z $CXX ]]; then
+  echo "Error: No C++ compiler found (searched ${compilers[@]})"
+  exit 1
+fi
+
+function main() {
+  local program=$1
+
+  function c_quoted_args() {
+    local result=""
+    for arg in "$@"; do
+      # Escape any quotes and add double quotes around each argument
+      result+='"'"${arg//\"/\\\"}"'"',
+    done
+
+    result=${result%,}
+
+    # Output the result
+    echo "$result"
+  }
+
+  function increment_tmux_counter_cmd() {
+    local op=$1
+    c_quoted_args '$_TMUX_REAL_PATH' set -pFt '$TMUX_PANE' @escape_nav_keys "#{e|${op}:#{@escape_nav_keys},1}"
+  }
+
+  $CXX -O2 "$src_dir"/wrap.cpp -o "$out_dir/$program" \
+    -DPROGRAM="\$_${(U)program}_REAL_PATH" \
+    -DBEFORE_CMD="$(increment_tmux_counter_cmd +)" \
+    -DAFTER_CMD="$(increment_tmux_counter_cmd -)" \
+    -DBALANCED \
+    # -DDEBUG
+}
+
+for prog in "$@"; do main "$prog"; done
