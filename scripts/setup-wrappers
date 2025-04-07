@@ -1,10 +1,18 @@
 #!/bin/zsh
 # bash compatible though
 
-if [[ -n "$TMUX" && -z $_TMUX_ESCAPE_NAV_ENABLED ]]; then
+# The environment tmux server is running in is not within TMUX so it is best we set this flag (used in keys.sh) regardless
+if [[ -z $_TMUX_ESCAPE_NAV_ENABLED ]]; then
+  export _TMUX_ESCAPE_NAV_ENABLED=1
+fi
+if [[ -n "$TMUX" && $_TMUX_ESCAPE_NAV_ENABLED = 1 && -z $_TMUX_ESCAPE_NAV_SETUP ]]; then
   __configure_tmux_wrappers() {
+    # Allow user to specify TMUX_ESCAPED_PROGRAMS as a *space-separated* list (so that it can be portably read in keys.sh as well)
+    if [[ ! -v TMUX_ESCAPED_PROGRAMS ]]; then
+      export TMUX_ESCAPED_PROGRAMS="fzf nvim"
+    fi
     if [[ -z $TMUX_ESCAPED_PROGRAMS ]]; then
-      export TMUX_ESCAPED_PROGRAMS=(fzf nvim)
+      return 0;
     fi
 
     local script_dir
@@ -21,7 +29,7 @@ if [[ -n "$TMUX" && -z $_TMUX_ESCAPE_NAV_ENABLED ]]; then
     local src_dir="$(realpath $script_dir/../escape-nav)"
     local out_dir="$src_dir/bin"
 
-    for cmd_name in "${TMUX_ESCAPED_PROGRAMS[@]}"; do
+    for cmd_name in $(echo $TMUX_ESCAPED_PROGRAMS); do
       if [[ ! -f "$out_dir/$cmd_name" ]]; then
         >&2 echo "Compiling tmux wrapper for $cmd_name..."
         SRC_DIR="$src_dir" OUT_DIR="$out_dir" "$script_dir/make-tmux-escaped-binary" "$cmd_name" || return 1
@@ -30,15 +38,23 @@ if [[ -n "$TMUX" && -z $_TMUX_ESCAPE_NAV_ENABLED ]]; then
       if [[ -n "$real_path" ]]; then
         local upper_cmd_name=$(printf "%s" "$cmd_name" | tr '[:lower:]' '[:upper:]')
         export "_${upper_cmd_name}_REAL_PATH=$real_path"
-        export _TMUX_ESCAPE_NAV_ENABLED=1
       fi
     done
 
-    if [[ $_TMUX_ESCAPE_NAV_ENABLED = 1 ]]; then
-        local tmux_path=$(command -v tmux 2>/dev/null)
-        [[ -n "$tmux_path" ]] && export _TMUX_REAL_PATH="$tmux_path"
-        export PATH="$out_dir:$PATH"
-    fi
+    local tmux_path=$(command -v tmux 2>/dev/null)
+    [[ -n "$tmux_path" ]] && export _TMUX_REAL_PATH="$tmux_path"
+    export PATH="$out_dir:$PATH"
+
+    # If user has changed TMUX_ESCAPED_PROGRAMS we should clean up because they are still on the path
+    local f
+    local valid_program_pattern=$(echo $TMUX_ESCAPED_PROGRAMS | xargs | tr -s '[:space:]' '|')
+    valid_program_pattern="^(${valid_program_pattern%?})$"
+    for f in $(ls "$out_dir"); do
+      if [[ ! "$f" =~ "$valid_program_pattern" ]]; then
+        rm "$out_dir/$f" 2>/dev/null
+      fi
+    done
+    export _TMUX_ESCAPE_NAV_SETUP=1
   }
 
   __configure_tmux_wrappers || >&2 echo "Failed to setup tmux program wrappers"
