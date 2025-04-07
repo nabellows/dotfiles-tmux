@@ -3,22 +3,22 @@
 shopt -s expand_aliases
 alias bind='tmux bind'
 
-not_tmux_pattern="fzf|n?vim"
-# As much as I love this version, its incorrect when you don't just literally run 'nvim' or 'fzf' in a way that tmux detects (foreground, man, piping)
-not_tmux_fast="#{&&:#{m/r:^$not_tmux_pattern$,#{pane_current_command}},#{!=:1,#{pane_in_mode}}}"
-# Even better...
-#TODO: Though it seems to be working fine, consider something like a pane-entered or more rare hook which deep-checks for YES TMUX case, and resets to zero if not zero
+not_tmux_pattern=$(echo "$TMUX_ESCAPED_PROGRAMS" | xargs | tr -s '[:space:]' '|')
+not_tmux_pattern=${not_tmux_pattern%?}
+if [[ -z $not_tmux_pattern ]]; then
+    not_tmux_pattern="fzf|n?vim"
+fi
+
+# Best version, don't run a process for every keystroke... (especially not ps which causes crowdstrike and others to freak out)
+# Using the powers of wrap.cpp and ../scripts/setup-wrappers
 not_tmux_hacked="#{&&:#{>:#{@escape_nav_keys},0},#{!=:1,#{pane_in_mode}}}"
 
-# not_tmux="ps -o tty= -o state= -o comm= | grep -iqE '^#{s|/dev/||:pane_tty} +(S\+|R) +(fzf|n?vim)$'"
+# As much as I love this version, its incorrect when you don't just literally run 'nvim' or 'fzf' in a way that tmux detects (foreground, man, piping)
+not_tmux_fast="#{&&:#{m/r:^$not_tmux_pattern$,#{pane_current_command}},#{!=:1,#{pane_in_mode}}}"
 # This version seems marginally faster than the other fully compliant one
-# not_tmux="pgrep '$not_tmux_pattern' | xargs ps -o tty= -o state= -p | grep -iqE '^#{s|/dev/||:pane_tty} +(R|S\+)'"
-#
+not_tmux="pgrep '$not_tmux_pattern' | xargs ps -o tty= -o state= -p | grep -iqE '^#{s|/dev/||:pane_tty} +[^TXZ ]+'"
 # So... combine them for fastest nav within nvim/fzf, but slower regular tmux nav :(
 # Works pretty well!
-# TODO: see tmux-win-name, need to be better at parsing the state
-
-not_tmux="pgrep '$not_tmux_pattern' | xargs ps -o tty= -o state= -p | grep -iqE '^#{s|/dev/||:pane_tty} +(R|S\+)'"
 not_tmux_hybrid="test $not_tmux_fast = 1 || $not_tmux"
 
 split_args='-c "#{pane_current_path}"'
@@ -57,7 +57,6 @@ function bind_escapable_vim_aware() {
         bind "$key" if -F "$not_tmux_fast" { if "$not_tmux" send-keys { $* } } send-keys
 EOF
     fi
-    bind_escapable_common "$key" "$@"
 }
 
 #------------------------------------------------------------
