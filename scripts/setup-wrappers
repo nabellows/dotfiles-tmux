@@ -8,7 +8,7 @@ fi
 if [[ $_TMUX_ESCAPE_NAV_ENABLED = 1 && -z $_TMUX_ESCAPE_NAV_SETUP ]]; then
   __configure_tmux_wrappers() {
     # Allow user to specify TMUX_ESCAPED_PROGRAMS as a *space-separated* list (so that it can be portably read in keys.sh as well)
-    if [[ ! -v TMUX_ESCAPED_PROGRAMS ]]; then
+    if [[ -z ${TMUX_ESCAPED_PROGRAMS+x} ]]; then
       export TMUX_ESCAPED_PROGRAMS="fzf nvim"
     fi
     if [[ -z $TMUX_ESCAPED_PROGRAMS ]]; then
@@ -30,16 +30,26 @@ if [[ $_TMUX_ESCAPE_NAV_ENABLED = 1 && -z $_TMUX_ESCAPE_NAV_SETUP ]]; then
     local out_dir="$src_dir/bin"
 
     local tmux_path=$(command -v tmux 2>/dev/null)
-    [[ -n "$tmux_path" ]] || { >&2 echo "Failed to find _TMUX_REAL_PATH, cannot create wrappers"; return 1 }
+    if [[ ! -x "$tmux_path" ]]; then
+      >&2 echo "Failed to find _TMUX_REAL_PATH, cannot create wrappers"; return 1
+    fi
     export _TMUX_REAL_PATH="$tmux_path"
+
+    local do_source=source
+    if command -v source_compile >/dev/null 2>&1; then
+      do_source=source_compile
+    fi
 
     for cmd_name in $(echo $TMUX_ESCAPED_PROGRAMS); do
       if [[ ! -f "$out_dir/$cmd_name" ]]; then
         >&2 echo "Compiling tmux wrapper for $cmd_name..."
-        SRC_DIR="$src_dir" OUT_DIR="$out_dir" "$script_dir/make-tmux-escaped-binary" "$cmd_name" || return 1
+        SRC_DIR="$src_dir" OUT_DIR="$out_dir" "$do_source" "$script_dir/make-tmux-escaped-binary" "$cmd_name" || return 1
       fi
       local cmd_path=$(command -v "$cmd_name" 2>/dev/null)
-      [[ -n "$cmd_path" ]] || { >&2 echo "Failed to find real path for $cmd_name, cannot create wrapper" }
+      if [[ ! -x "$cmd_path" ]]; then
+        >&2 echo "Failed to find real path for $cmd_name, cannot create wrapper"
+        continue
+      fi
       if [[ -n "$cmd_path" ]]; then
         local upper_cmd_name=$(printf "%s" "$cmd_name" | tr '[:lower:]' '[:upper:]')
         export "_${upper_cmd_name}_REAL_PATH=$cmd_path"
