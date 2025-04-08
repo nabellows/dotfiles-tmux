@@ -224,26 +224,28 @@ static void tstp_handler(int sig)
     register_handler(SIGTSTP, tstp_handler);
 }
 
+//TODO: Just forward signals and make sure that the main() exit will stil happen, if so, exit there and cleanup there (with exit codes)
+static constexpr int forwarded_signals[] = {
+    SIGHUP, SIGINT, SIGTERM, SIGQUIT, SIGPIPE,
+    SIGUSR1, SIGUSR2, SIGALRM, SIGCHLD,
+    // SIGTSTP, SIGCONT, // Handled already
+    SIGWINCH
+    // add more if needed
+};
+
+static void forward_signal(int sig) {
+    if (child_pid > 0) {
+        kill(child_pid, sig);
+    }
+    else {
+        err_exit("no child pid");
+    }
+}
+
 static void cont_handler(int sig) {
     print_debug("CONT");
     before();
-    kill(child_pid, SIGCONT);
-}
-
-//TODO: Just forward signals and make sure that the main() exit will stil happen, if so, exit there and cleanup there (with exit codes)
-static void forward_signal() {
-
-}
-
-static void exit_handler(int sig) {
-    print_debug("error handler");
-    kill(child_pid, sig);
-    after();
-    // TODO: some signals might not actually be fatal (SIGPIPE?), should we kill the cleaup crew and exit unsuccessfully? Maybe introspect on the child?
-    if (cleanup_pid > 0) {
-        kill(cleanup_pid, SIGKILL);
-    }
-    exit(EXIT_FAILURE);
+    forward_signal(sig);
 }
 
 static char **parse_command(int argc, char **argv, int *index) {
@@ -379,8 +381,8 @@ int main(int argc, char *argv[]) {
 
     register_handler(SIGTSTP, tstp_handler);
     register_handler(SIGCONT, cont_handler);
-    for (int sig : { SIGINT, SIGTERM, SIGQUIT, SIGPIPE, SIGHUP }) {
-        register_handler(sig, exit_handler);
+    for (int sig : forwarded_signals) {
+        register_handler(sig, forward_signal);
     }
 
     before();
@@ -414,16 +416,16 @@ int main(int argc, char *argv[]) {
                 print_debug("bad waitpid: %d", status);
             }
             else {
-                print_debug("child exited with status %d", status);
+                print_debug("child exited with status %d (%d)", status, WEXITSTATUS(status));
             }
         } while (WIFSTOPPED(status));
-        //TODO: for a while, fzf-lua was still invoking this, but now it doesn't...
         print_debug("Exiting regular flow");
         kill(cleanup_pid, SIGKILL);
         after();
-        // I am a little paranoid about kill race condition with cleanup_pid - my understanding is that the kill
-        // is synchronous and immediately suspends scheduling of CPU for that process, but I have doubts
-        // usleep(100000); // 100 ms
+        if (WIFSIGNALED(status)) {
+            exit(128 + WTERMSIG(status));
+        }
+        exit(WEXITSTATUS(status));
 #ifdef DEBUG
         if (file) {
             fclose(file);
