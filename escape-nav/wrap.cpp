@@ -11,8 +11,10 @@
 #include <unistd.h>
 #include <utility>
 
-#define printErr(...) do { printDebug(__VA_ARGS__); fprintf(stderr, __VA_ARGS__); } while (0)
-#define errExit(...) do { printErr(__VA_ARGS__); exit(EXIT_FAILURE); } while (0)
+//TODO: fix fzf --become logic being interpreted as "child exited, Exiting regular flow (use better logic than WIFSTOPED)"
+
+#define print_err(...) do { print_debug(__VA_ARGS__); fprintf(stderr, __VA_ARGS__); } while (0)
+#define err_exit(...) do { print_err(__VA_ARGS__); exit(EXIT_FAILURE); } while (0)
 #define STR_(s) #s
 #define STR(s) STR_(s)
 
@@ -61,10 +63,10 @@ static void sleep_millis(int millis, bool full_wait = false) {
 }
 
 // Overcomplicated just to shush fprintf non-literal warnings
-#define printDebug(fmt, ...) printDebug_([](auto file, auto...args) { fprintf(file, fmt, args...); }, ##__VA_ARGS__)
+#define print_debug(fmt, ...) print_debug_([](auto file, auto...args) { fprintf(file, fmt, args...); }, ##__VA_ARGS__)
 
 template<class F, class...T>
-static void printDebug_(F fprintf_, T const&... args) {
+static void print_debug_(F fprintf_, T const&... args) {
 #ifdef DEBUG
     if (debug) {
         if (!file) {
@@ -83,14 +85,14 @@ static void printDebug_(F fprintf_, T const&... args) {
 
 void* my_alloc(int size) {
     if (env_buf_index + size > ENV_BUF) {
-        printDebug("malloc %d", size);
+        print_debug("malloc %d", size);
         return malloc(size);
     }
-    printDebug("my_alloc %d", size);
+    print_debug("my_alloc %d", size);
     return &env_buf[std::exchange(env_buf_index, env_buf_index + size)];
 }
 
-static pid_t doFork(char** cmd, bool detach=false) {
+static pid_t do_fork(char** cmd, bool detach=false) {
     if (cmd && cmd[0]) {
 #if defined(DEBUG)
         if (debug) {
@@ -100,37 +102,37 @@ static pid_t doFork(char** cmd, bool detach=false) {
                     line += ' ';
                     line += cmd[i];
                 }
-                printDebug("forking %s", line.c_str());
+                print_debug("forking %s", line.c_str());
             } else {
                 if (cmd[1]) {
-                    printDebug("forking FZF ARGS %s ...", cmd[1]);
+                    print_debug("forking FZF ARGS %s ...", cmd[1]);
                 }
                 else {
-                    printDebug("forking %s", cmd[0]);
+                    print_debug("forking %s", cmd[0]);
                 }
             }
         }
 #endif
-        printDebug("attempting fork");
+        print_debug("attempting fork");
         pid_t pid = fork();
         if (pid == 0) {
             if (detach) {
                 setsid();
             }
-            printDebug("Child created (%s)", cmd[0]);
+            print_debug("Child created (%s)", cmd[0]);
             execv(cmd[0], cmd);
-            printErr("Failed to run '%s': %s\n", cmd[0], strerror(errno));
+            print_err("Failed to run '%s': %s\n", cmd[0], strerror(errno));
             exit(EXIT_FAILURE);
         }
         else if (pid < 0) {
-            errExit("Failed to fork (%s)", cmd[0]);
+            err_exit("Failed to fork (%s)", cmd[0]);
         }
         else {
-            printDebug("Parent of fork done (%s)", cmd[0]);
+            print_debug("Parent of fork done (%s)", cmd[0]);
         }
         return pid;
     } else {
-        printDebug("(nothing to fork)");
+        print_debug("(nothing to fork)");
     }
     return -1;
 }
@@ -148,48 +150,50 @@ static bool set_running_flag(bool new_state) {
 }
 
 static void before() {
-    printDebug("before");
+    print_debug("before");
     if (set_running_flag(true)) {
-        printDebug("(is not yet running)");
-        auto pid = doFork(before_cmd, true);
+        print_debug("(is not yet running)");
+        auto pid = do_fork(before_cmd, true);
 #ifdef WAIT_BEFORE
         if (res > 0) {
             waitpid(pid, &status, 0);
         }
 #endif
     } else {
-        printDebug("SKIPPED before (is already running)");
+        print_debug("SKIPPED before (is already running)");
     }
 }
 
 static void after() {
-    printDebug("after");
+    print_debug("after");
     if (set_running_flag(false)) {
-        printDebug("(is running)");
-        auto pid = doFork(after_cmd, true);
+        print_debug("(is running)");
+        //TODO: to be honest detaching all of these without a cleanup strategy is a bit risky. In reality, probably just at least need a wait on after() even if not before() (or when exiting, a wait on all PIDs)
+        //For the current tmux one, its totally fine since there isn't really a way for it to be long lived
+        auto pid = do_fork(after_cmd, true);
 #ifdef WAIT_AFTER
         if (res > 0) {
             waitpid(pid, &status, 0);
         }
 #endif
     } else {
-        printDebug("SKIPPED after (is not running)");
+        print_debug("SKIPPED after (is not running)");
     }
 }
 
-static void registerHandler(int sig, void(*handler)(int)) {
+static void register_handler(int sig, void(*handler)(int)) {
     struct sigaction sa;
     sigemptyset(&sa.sa_mask);           /* Reestablish handler */
     sa.sa_flags = SA_RESTART;
     sa.sa_handler = handler;
     if (sigaction(sig, &sa, NULL) == -1)
-        errExit("sigaction for signal %s", strsignal(sig));
+        err_exit("sigaction for signal %s", strsignal(sig));
 }
 
-static void tstpHandler(int sig)
+static void tstp_handler(int sig)
 {
-    printDebug("TSTP");
-    sigset_t tstpMask, prevMask;
+    print_debug("TSTP");
+    sigset_t tstp_mask, prev_mask;
     struct sigaction sa;
 
     if (child_pid > 0) {
@@ -197,39 +201,45 @@ static void tstpHandler(int sig)
         kill(child_pid, SIGTSTP);
     }
     else {
-        errExit("no child pid");
+        err_exit("no child pid");
     }
 
     if (signal(SIGTSTP, SIG_DFL) == SIG_ERR)
-        errExit("signal");              /* Set handling to default */
+        err_exit("signal");              /* Set handling to default */
 
     raise(SIGTSTP);                     /* Generate a further SIGTSTP */
 
     /* Unblock SIGTSTP; the pending SIGTSTP immediately suspends the program */
 
-    sigemptyset(&tstpMask);
-    sigaddset(&tstpMask, SIGTSTP);
-    if (sigprocmask(SIG_UNBLOCK, &tstpMask, &prevMask) == -1)
-        errExit("sigprocmask (change)");
+    sigemptyset(&tstp_mask);
+    sigaddset(&tstp_mask, SIGTSTP);
+    if (sigprocmask(SIG_UNBLOCK, &tstp_mask, &prev_mask) == -1)
+        err_exit("sigprocmask (change)");
 
     /* Execution resumes here after SIGCONT */
 
-    if (sigprocmask(SIG_SETMASK, &prevMask, NULL) == -1)
-        errExit("sigprocmask (revert)");         /* Reblock SIGTSTP */
+    if (sigprocmask(SIG_SETMASK, &prev_mask, NULL) == -1)
+        err_exit("sigprocmask (revert)");         /* Reblock SIGTSTP */
 
-    registerHandler(SIGTSTP, tstpHandler);
+    register_handler(SIGTSTP, tstp_handler);
 }
 
-static void contHandler(int sig) {
-    printDebug("CONT");
+static void cont_handler(int sig) {
+    print_debug("CONT");
     before();
     kill(child_pid, SIGCONT);
 }
 
-static void exitHandler(int sig) {
-    printDebug("error handler");
+//TODO: Just forward signals and make sure that the main() exit will stil happen, if so, exit there and cleanup there (with exit codes)
+static void forward_signal() {
+
+}
+
+static void exit_handler(int sig) {
+    print_debug("error handler");
     kill(child_pid, sig);
     after();
+    // TODO: some signals might not actually be fatal (SIGPIPE?), should we kill the cleaup crew and exit unsuccessfully? Maybe introspect on the child?
     if (cleanup_pid > 0) {
         kill(cleanup_pid, SIGKILL);
     }
@@ -243,7 +253,7 @@ static char **parse_command(int argc, char **argv, int *index) {
     }
 
     if (*index == argc) {
-        errExit("Error: Missing ';' terminator for command.\n");
+        err_exit("Error: Missing ';' terminator for command.\n");
     }
 
     argv[*index] = NULL; // Null-terminate the command array
@@ -254,7 +264,7 @@ static char **parse_command(int argc, char **argv, int *index) {
 
 static void parse_args(int argc, char *argv[]) {
     if (argc < 2) {
-        errExit("Usage: %s [--before <cmd> ;] [--after <cmd> ;] <program> [args...]\n", argv[0]);
+        err_exit("Usage: %s [--before <cmd> ;] [--after <cmd> ;] <program> [args...]\n", argv[0]);
     }
     // Parse arguments
     int i = 1;
@@ -281,7 +291,7 @@ static T** clone_vec(T** vec) {
     int size = (count+1) * sizeof(T*);
     T** res = (T**) my_alloc(size);
     if (!res) {
-        errExit("malloc() failed\n");
+        err_exit("malloc() failed\n");
     }
     memcpy(res, vec, size);
     return res;
@@ -297,37 +307,37 @@ static char* clone_str(char* str) {
 static char** resolve_env(char** cmd) {
     if (!cmd) return NULL;
     for (int i = 0; cmd[i]; ++i) {
-        printDebug("before %p : %s", cmd[i], cmd[i]);
+        print_debug("before %p : %s", cmd[i], cmd[i]);
     }
     bool cloned = false;
     for (int i = 0 ; cmd[i] ; ++i) {
         if (cmd[i][0] == '$') {
             char* resolved = getenv(cmd[i] + 1);
             if (!resolved) {
-                errExit("Failed to resolve '%s' from environment\n", cmd[i]);
+                err_exit("Failed to resolve '%s' from environment\n", cmd[i]);
             }
             else {
-                printDebug("RESOLVED %s ==> '%s'", cmd[i], resolved);
+                print_debug("RESOLVED %s ==> '%s'", cmd[i], resolved);
                 // Should be fine... not technically ISO C++ compliant
                 #ifdef NO_MODIFY_LITERALS
                 if (!cloned) {
                     cmd = clone_vec(cmd);
                     if (!cmd) {
-                        printDebug("CLONE RETURNED NULL");
+                        print_debug("CLONE RETURNED NULL");
                         exit(1);
                     }
-                    printDebug("Cloned cmd and it is still %s", cmd[i]);
+                    print_debug("Cloned cmd and it is still %s", cmd[i]);
                     cloned = true;
                 }
                 #endif
                 // Need to clone getenv()
                 cmd[i] = clone_str(resolved);
-                printDebug("... duped %s", cmd[i]);
+                print_debug("... duped %s", cmd[i]);
             }
         }
     }
     for (int i = 0; cmd[i]; ++i) {
-        printDebug("after  %p : %s", cmd[i], cmd[i]);
+        print_debug("after  %p : %s", cmd[i], cmd[i]);
     }
     return cmd;
 }
@@ -360,55 +370,55 @@ int main(int argc, char *argv[]) {
                             MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 
     if (shared_mem == MAP_FAILED) {
-        errExit("mmap failed");
+        err_exit("mmap failed");
     }
 
     // Placement new to construct atomic_bool in shared memory
     running_flag = new(shared_mem) std::atomic_bool(false);
 #endif
 
-    registerHandler(SIGTSTP, tstpHandler);
-    registerHandler(SIGCONT, contHandler);
+    register_handler(SIGTSTP, tstp_handler);
+    register_handler(SIGCONT, cont_handler);
     for (int sig : { SIGINT, SIGTERM, SIGQUIT, SIGPIPE, SIGHUP }) {
-        registerHandler(sig, exitHandler);
+        register_handler(sig, exit_handler);
     }
 
     before();
 
-    child_pid = doFork(wrapped_cmd);
+    child_pid = do_fork(wrapped_cmd);
     cleanup_pid = fork();
     int status;
     // Last-ditch cleanup_pid, disowned and polling for this process
     if (cleanup_pid == 0) {
         pid_t setsid_res = setsid();
-        printDebug("setsid: %d", setsid_res);
+        print_debug("setsid: %d", setsid_res);
         pid_t ppid;
         // ppid 1 is the 'init' procces. thanks chat gpt
         while ((ppid=getppid()) > 1) {
-            printDebug("parent alive: %d", ppid);
+            print_debug("parent alive: %d", ppid);
             #if (CLEANUP_POLL_PERIOD_MILLIS >= 1000 && CLEANUP_POLL_PERIOD_MILLIS % 1000 < 100)
                 sleep(CLEANUP_POLL_PERIOD_MILLIS / 1000);
             #else
                 sleep_millis(CLEANUP_POLL_PERIOD_MILLIS);
             #endif
         }
-        printDebug("CLEANUP");
+        print_debug("CLEANUP");
         kill(child_pid, SIGTERM);
         after();
     }
     // Healthy exit strategy
     else {
         do {
-            printDebug("starting wait for child");
+            print_debug("starting wait for child");
             if (waitpid(child_pid, &status, WUNTRACED) == -1) {
-                printDebug("bad waitpid: %d", status);
+                print_debug("bad waitpid: %d", status);
             }
             else {
-                printDebug("child exited");
+                print_debug("child exited with status %d", status);
             }
         } while (WIFSTOPPED(status));
         //TODO: for a while, fzf-lua was still invoking this, but now it doesn't...
-        printDebug("Exiting regular flow");
+        print_debug("Exiting regular flow");
         kill(cleanup_pid, SIGKILL);
         after();
         // I am a little paranoid about kill race condition with cleanup_pid - my understanding is that the kill
