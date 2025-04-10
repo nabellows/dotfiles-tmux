@@ -26,6 +26,7 @@ equalize='select-layout -E'
 
 #TODO: remove debug
 bind u display '#{@escape_nav_keys}'
+bind 'C-u' set -gp @escape_nav_keys 0
 
 #------------------------------------------------------------
 # FZF (Ctrl-f/w/= below)
