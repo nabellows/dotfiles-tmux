@@ -1,23 +1,36 @@
 #!/bin/bash
 
-#TODO: Find a way to manipulate/override CTPN logic to allow dynamic resourcing to work
-
 # Yes, ik its gross, its because the repo is catppuccin as prefix instead of suffix ('catppuccin/tmux')
 CTPN_PLUG_DIR="$TMUX_PLUGINS_PATH/tmux/"
 CTPN_PLUG_SCRIPT="$CTPN_PLUG_DIR/catppuccin.tmux"
 
 dir_color="#{@thm_lavender}"
 dir_text="#(_NO_NICKNAME=1 useful-dir #{pane_current_path})"
-win_text=" #(_SHORT_PKG=1 #{@scripts}/tmux-win-name '#{window_id}' >/dev/null)#{E:@my_window_name_formatted}"
+win_text="#(_SHORT_PKG=1 #{@scripts}/tmux-win-name '#{window_id}' >/dev/null)#{E:@my_window_name_formatted}"
+flavor="${CATPPUCCIN_FLAVOR:-mocha}"
+
+mode_color="#{@thm_yellow}"
+synchronized_color="#{@thm_red}"
+
+function mode-or-sync-color() {
+  local if_regular="$1"
+  echo "#{?pane_in_mode,$mode_color,#{?pane_synchronized,$synchronized_color,$if_regular}}"
+}
+
+# Unset all catppuccin vars to allow re-sourcing
+tmux show-options -g | awk '/^(@catppuccin|@thm_)/ {print $1}' | while read -r var; do
+  tmux set -ug "$var"
+done
 
 tmux source - <<EOF
 
 # catppuccin config should be done before running plugs
-set -g @catppuccin_flavor 'mocha'
+set -g @catppuccin_flavor "$flavor"
+setenv -g CATPPUCCIN_FLAVOR "$flavor"
 
 # Add preferred names that were missing
-set -g @thm_base "#{thm_bg}"
-set -g @thm_text "#{thm_fg}"
+set -g @thm_base "#{@thm_bg}"
+set -g @thm_text "#{@thm_fg}"
 
 #------------------------------------------------------------
 # Status Line
@@ -50,6 +63,8 @@ set -g @cpu_percentage_format "%2d%%"
 set -g @cpu_medium_thresh "50"
 set -g @cpu_high_thresh "80"
 
+set -g @catppuccin_session_color "#{E:#{?client_prefix,#{@thm_peach},$(mode-or-sync-color '#{@thm_green}')}}"
+
 #------------------------------------------------------------
 # Window status
 #------------------------------------------------------------
@@ -59,6 +74,12 @@ set -g @catppuccin_window_status_style "basic"
 
 set -g @catppuccin_window_text "$win_text"
 set -g @catppuccin_window_current_text "$win_text"
+
+#------------------------------------------------------------
+# Panes
+#------------------------------------------------------------
+set -g @catppuccin_pane_border_style "fg=#{@thm_overlay_0},bg=#{@thm_mantle}"
+set -g @catppuccin_pane_active_border_style "fg=#{l:$(mode-or-sync-color '#{@thm_lavender}')},bg=#{@thm_mantle}"
 
 if 'test -f $CTPN_PLUG_SCRIPT' \
   'run $CTPN_PLUG_SCRIPT' \
@@ -84,13 +105,14 @@ set -agF status-right "#{E:@catppuccin_status_cpu}"
 set -agF status-right "#{E:@catppuccin_status_battery}"
 set -ag status-right "#{E:@catppuccin_status_session}"
 
+# Ugly-ish but functional
+set -gF status-left "##{?pane_in_mode,#[bg=$mode_color]#[fg=#{@thm_mantle}]#[bold] COPY MODE #[reverse]#[default] ,}"
+
 #------------------------------------------------------------
 # General appearance
 #------------------------------------------------------------
 set -gF window-active-style 'bg=#{@thm_bg},fg=#{@thm_fg}'
 set -gF window-style 'bg=#{@thm_mantle},fg=#{@thm_subtext_1}'
-# These were my old values, but theme colors seem solid for now
-# set -g window-active-style 'bg="#1C1C29"'
-# set -g window-style 'bg="#10101D"'
+
 
 EOF

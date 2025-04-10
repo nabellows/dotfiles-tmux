@@ -17,7 +17,6 @@ catppuccin/tmux
 tmux-plugins/tmux-cpu
 tmux-plugins/tmux-battery
 sainnhe/tmux-fzf
-tmux-plugins/tmux-prefix-highlight
 alexwforsythe/tmux-which-key
 
 "

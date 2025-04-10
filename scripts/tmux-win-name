@@ -39,6 +39,7 @@ function is-nvim() {
   return $res
 }
 
+# TODO: is this really the best logic? Results in that transitionary period where closing nvim or similar results in pink "nvim"
 if [[ "$window_name" == "$current_command" || -z $window_name ]]; then
   if is-nvim; then
     formatted="#[fg=green]\uf36f${nvim_file:+ $nvim_file}#[fg=white,italics,nobold] $dir_color_short#[fg=white,noitalics]"
@@ -48,10 +49,10 @@ if [[ "$window_name" == "$current_command" || -z $window_name ]]; then
     formatted="#[fg=cyan,bold]$current_command#[fg=white,italics] $dir_color_short#[fg=white,noitalics]"
   fi
 else
-  formatted="#[fg=magenta,bold]$window_name#[fg=white,nobold]"
+  formatted="#[fg=#{@thm_flamingo},bold]$window_name#[fg=white,nobold]"
 fi
 
-tmux set-window-option -t $window_id @my_window_name_formatted "$(printf "$formatted")" # printf for unicode escape
+tmux set-window-option -t $window_id @my_window_name_formatted " $(printf "$formatted")" # printf for unicode escape
 tmux set-window-option -t $window_id @my_window_name "$full_name"
 tmux set-window-option -t $window_id @my_window_index "$full_name"
 
