@@ -152,9 +152,10 @@ bind % split-window -h
 # The quotes are kind of gross due to tmux
 bind_escapable 'C-\;' last-window
 
-# Alt vim keys to switch windows
-bind_escapable 'M-h' previous-window
-bind_escapable 'M-l' next-window
+# Ctrl+Alt vim keys for navigating windows
+# Not sure why, but on iterm ctrl+alt is registering as ctrl+shift for these keys
+bind_escapable 'C-H' previous-window
+bind_escapable 'C-L' next-window
 
 # Shift arrow to switch windows
 bind_escapable 'S-Left'  previous-window
