@@ -29,7 +29,7 @@ if [[ $_TMUX_ESCAPE_NAV_ENABLED = 1 && -z $_TMUX_ESCAPE_NAV_SETUP ]]; then
     local src_dir="$(realpath $script_dir/../escape-nav)"
     local out_dir="$src_dir/bin"
 
-    local tmux_path=$(command -v tmux 2>/dev/null)
+    local tmux_path=$(which -p tmux 2>/dev/null)
     if [[ ! -x "$tmux_path" ]]; then
       >&2 echo "Failed to find _TMUX_REAL_PATH, cannot create wrappers"; return 1
     fi
@@ -45,7 +45,7 @@ if [[ $_TMUX_ESCAPE_NAV_ENABLED = 1 && -z $_TMUX_ESCAPE_NAV_SETUP ]]; then
         >&2 echo "Compiling tmux wrapper for $cmd_name..."
         SRC_DIR="$src_dir" OUT_DIR="$out_dir" "$do_source" "$script_dir/make-tmux-escaped-binary" "$cmd_name" || return 1
       fi
-      local cmd_path=$(command -v "$cmd_name" 2>/dev/null)
+      local cmd_path=$(which -p "$cmd_name" 2>/dev/null)
       if [[ ! -x "$cmd_path" ]]; then
         >&2 echo "Failed to find real path for $cmd_name, cannot create wrapper"
         continue
