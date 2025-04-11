@@ -1,4 +1,6 @@
 #!/bin/zsh
+#
+#TODO: use #[push-default] and #[default] here and in theme where possible to be robust (rather than stuff like fg=white)
 
 # Determine window ID
 if [ -z "$1" ]; then
@@ -39,19 +41,27 @@ function is-nvim() {
   return $res
 }
 
-# TODO: is this really the best logic? Results in that transitionary period where closing nvim or similar results in pink "nvim"
-if [[ "$window_name" == "$current_command" || -z $window_name ]]; then
-  if is-nvim; then
-    formatted="#[fg=green]\uf36f${nvim_file:+ $nvim_file}#[fg=white,italics,nobold] $dir_color_short#[fg=white,noitalics]"
-  elif [[ "$current_command" =~ "zsh|bash" ]]; then
-    formatted="#[fg=white,italics]$dir_color_short#[fg=white,noitalics]"
-  else
-    formatted="#[fg=cyan,bold]$current_command#[fg=white,italics] $dir_color_short#[fg=white,noitalics]"
+details=0
+if [[ -n $window_name ]]; then
+  if [[ "$window_name" = *: ]]; then
+    details=1
+    window_name="${window_name[1,-2]} "
   fi
-else
-  formatted="#[fg=#{@thm_flamingo},bold]$window_name#[fg=white,nobold]"
+  formatted="#[fg=#{@thm_sapphire},bold,italics]$window_name#[fg=white,nobold,italics]"
 fi
-formatted="$formatted#{?window_zoomed_flag, #[bold]#[fg=#{E:@zoom_icon_color}]\uf00e#[nobold]#[fg=white],}"
+
+if ((details)); then
+  if is-nvim; then
+    formatted+="#[fg=#{@thm_green}]\uf36f${nvim_file:+ $nvim_file}#[fg=white,italics,nobold] $dir_color_short#[fg=white,noitalics]"
+  elif [[ "$current_command" =~ "zsh|bash" ]]; then
+    formatted+="#[fg=white,italics]$dir_color_short#[fg=white,noitalics]"
+  else
+    formatted+="#[fg=#{@thm_teal},bold]$current_command#[fg=white,italics] $dir_color_short#[fg=white,noitalics]"
+  fi
+fi
+formatted+="#{?window_zoomed_flag, #[bold]#[fg=#{E:@zoom_icon_color}]\uf00e#[nobold]#[fg=white],}"
+formatted+="#{?pane_in_mode, #[bold]#[fg=#{E:@mode_color}]#(echo #{pane_mode} | cut -c1 | tr a-z A-Z)m#[nobold]#[fg=white],}"
+formatted+="#{?pane_synchronized, #[bold]#[fg=#{E:@sync_color}]S!#[nobold]#[fg=white],}"
 
 tmux set-window-option -t $window_id @my_window_name_formatted " $(printf "$formatted")" # printf for unicode escape
 tmux set-window-option -t $window_id @my_window_name "$full_name"

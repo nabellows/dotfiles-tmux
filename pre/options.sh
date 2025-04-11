@@ -19,4 +19,8 @@ set -g pane-base-index 1
 set-window-option -g pane-base-index 1
 set -g renumber-windows on
 
+# now #{window_name} should be empty if not set by the user
+set-option -wg automatic-rename on
+set-option -wg automatic-rename-format ''
+
 EOF

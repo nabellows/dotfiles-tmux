@@ -9,15 +9,15 @@ dir_text="#(_NO_NICKNAME=1 useful-dir #{pane_current_path})"
 win_text="#(_SHORT_PKG=1 #{@scripts}/tmux-win-name '#{window_id}' >/dev/null)#{E:@my_window_name_formatted}"
 flavor="${CATPPUCCIN_FLAVOR:-mocha}"
 
-mode_color="#{@thm_yellow}"
-synchronized_color="#{@thm_red}"
+mode_color="#{@thm_peach}"
+sync_color="#{@thm_red}"
 
 function mode-or-sync-color() {
   local if_regular="$1"
-  echo "#{?pane_in_mode,$mode_color,#{?pane_synchronized,$synchronized_color,$if_regular}}"
+  echo "#{?pane_in_mode,$mode_color,#{?pane_synchronized,$sync_color,$if_regular}}"
 }
 # Uppercase, space instead of hyphen
-mode_or_sync_string_cmd='tmux display -p "#{?pane_in_mode,#{pane_mode},#{?pane_synchronized,PANE SYNC,}}" | sed "s/-/ /g" | tr a-z A-Z'
+mode_or_sync_string_cmd='echo "#{?pane_in_mode,#{pane_mode},#{?pane_synchronized,PANE SYNC,}}" | sed "s/-/ /g" | tr a-z A-Z'
 # Need gawk for unicode...
 mode_or_sync_status_line="#($mode_or_sync_string_cmd | gawk \"NF { print \\\" \\\" \\\$0 \\\" █\\\" }\")"
 
@@ -27,6 +27,9 @@ tmux show-options -g | awk '/^(@catppuccin|@thm_)/ {print $1}' | while read -r v
 done
 
 tmux source - <<EOF
+
+set -g @mode_color "$mode_color"
+set -g @sync_color "$sync_color"
 
 # catppuccin config should be done before running plugs
 set -g @catppuccin_flavor "$flavor"
@@ -67,7 +70,7 @@ set -g @cpu_percentage_format "%2d%%"
 set -g @cpu_medium_thresh "50"
 set -g @cpu_high_thresh "80"
 
-set -g @catppuccin_session_color "#{E:#{?client_prefix,#{@thm_peach},$(mode-or-sync-color '#{@thm_green}')}}"
+set -g @catppuccin_session_color "#{E:#{?client_prefix,#{@thm_pink},$(mode-or-sync-color '#{@thm_green}')}}"
 
 #------------------------------------------------------------
 # Window status
