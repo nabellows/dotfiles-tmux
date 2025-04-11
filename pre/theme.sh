@@ -16,6 +16,10 @@ function mode-or-sync-color() {
   local if_regular="$1"
   echo "#{?pane_in_mode,$mode_color,#{?pane_synchronized,$synchronized_color,$if_regular}}"
 }
+# Uppercase, space instead of hyphen
+mode_or_sync_string_cmd='tmux display -p "#{?pane_in_mode,#{pane_mode},#{?pane_synchronized,PANE SYNC,}}" | sed "s/-/ /g" | tr a-z A-Z'
+# Need gawk for unicode...
+mode_or_sync_status_line="#($mode_or_sync_string_cmd | gawk \"NF { print \\\" \\\" \\\$0 \\\" █\\\" }\")"
 
 # Unset all catppuccin vars to allow re-sourcing
 tmux show-options -g | awk '/^(@catppuccin|@thm_)/ {print $1}' | while read -r var; do
@@ -106,7 +110,7 @@ set -agF status-right "#{E:@catppuccin_status_battery}"
 set -ag status-right "#{E:@catppuccin_status_session}"
 
 # Ugly-ish but functional
-set -gF status-left "##{?pane_in_mode,#[bg=$mode_color]#[fg=#{@thm_mantle}]#[bold] COPY MODE #[reverse]#[default] ,}"
+set -g status-left '#[bg=$(mode-or-sync-color)]#[fg=#{@thm_mantle}]#[bold]$mode_or_sync_status_line#[default]'
 
 #------------------------------------------------------------
 # General appearance
