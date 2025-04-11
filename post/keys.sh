@@ -52,12 +52,13 @@ function bind_escapable_vim_aware() {
         bind "$key" if -F "$not_tmux_hacked" "$*" send-keys
     else
         # For whatver reason I'm having so much trouble getting bash and tmux to both play nice with quoting and/or braces
-        tmux source - <<EOF
+tmux source - <<EOF
         # bind -n "$key" if "$not_tmux_hybrid" send-keys { $* }
         bind -n "$key" if -F "$not_tmux_fast" send-keys { if "$not_tmux" send-keys { $* } }
         bind "$key" if -F "$not_tmux_fast" { if "$not_tmux" send-keys { $* } } send-keys
 EOF
     fi
+    bind -T copy-mode-vi "$key" "$@"
 }
 
 #------------------------------------------------------------
