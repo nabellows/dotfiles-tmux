@@ -103,7 +103,9 @@ tmux source - <<EOF # tmux treesitter funny, just breaking it up
 set -g status-right-length 100
 set -g status-left-length 100
 set -g status-left ""
-set -g status-right "#{E:@catppuccin_status_directory}"
+set -g @zoom_icon_color "#{@thm_yellow}"
+set -g status-right "#{?window_zoomed_flag,#[bold]#[fg=#{@thm_mantle}]#[bg=#{E:@zoom_icon_color}] \uf00e #[default] ,}"
+set -ag status-right "#{E:@catppuccin_status_directory}"
 set -ag status-right "#{E:@catppuccin_status_application}"
 set -agF status-right "#{E:@catppuccin_status_cpu}"
 set -agF status-right "#{E:@catppuccin_status_battery}"

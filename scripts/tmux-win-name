@@ -51,6 +51,7 @@ if [[ "$window_name" == "$current_command" || -z $window_name ]]; then
 else
   formatted="#[fg=#{@thm_flamingo},bold]$window_name#[fg=white,nobold]"
 fi
+formatted="$formatted#{?window_zoomed_flag, #[bold]#[fg=#{E:@zoom_icon_color}]\uf00e#[nobold]#[fg=white],}"
 
 tmux set-window-option -t $window_id @my_window_name_formatted " $(printf "$formatted")" # printf for unicode escape
 tmux set-window-option -t $window_id @my_window_name "$full_name"
