@@ -35,10 +35,6 @@ set -g @sync_color "$sync_color"
 set -g @catppuccin_flavor "$flavor"
 setenv -g CATPPUCCIN_FLAVOR "$flavor"
 
-# Add preferred names that were missing
-set -g @thm_base "#{@thm_bg}"
-set -g @thm_text "#{@thm_fg}"
-
 #------------------------------------------------------------
 # Status Line
 #------------------------------------------------------------
@@ -100,6 +96,10 @@ EOF
 #------------------------------------------------------------
 tmux source - <<EOF # tmux treesitter funny, just breaking it up
 
+# Add preferred names that were missing
+set -gF @thm_base "#{@thm_bg}"
+set -gF @thm_text "#{@thm_fg}"
+
 #------------------------------------------------------------
 # Status Line
 #------------------------------------------------------------
@@ -122,6 +122,5 @@ set -g status-left '#[bg=$(mode-or-sync-color)]#[fg=#{@thm_mantle}]#[bold]$mode_
 #------------------------------------------------------------
 set -gF window-active-style 'bg=#{@thm_bg},fg=#{@thm_fg}'
 set -gF window-style 'bg=#{@thm_mantle},fg=#{@thm_subtext_1}'
-
 
 EOF
