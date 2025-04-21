@@ -1,0 +1,3 @@
+#!/bin/sh
+tty="$1"
+pgrep 'nvim' | xargs ps -o tty= -o state= -o args= -p | rg "^$tty +(R|S\\S*\\+)(.*)" -m1 -o -r '${2}'

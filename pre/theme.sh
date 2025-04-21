@@ -6,7 +6,7 @@ CTPN_PLUG_SCRIPT="$CTPN_PLUG_DIR/catppuccin.tmux"
 
 dir_color="#{@thm_lavender}"
 dir_text="#(_NO_NICKNAME=1 useful-dir #{pane_current_path})"
-win_text="#(_SHORT_PKG=1 #{@scripts}/tmux-win-name '#{window_id}' >/dev/null)#{E:@my_window_name_formatted}"
+win_text="#(_SHORT_PKG=1 FORMATTED=1 #{@scripts}/tmux-win-name '#{window_id}')"
 flavor="${CATPPUCCIN_FLAVOR:-mocha}"
 
 mode_color="#{@thm_peach}"
@@ -74,6 +74,7 @@ set -g @catppuccin_session_color "#{E:#{?client_prefix,#{@thm_pink},$(mode-or-sy
 # TODO: probably make selected win text omit the dir name since its already present in tmux status line. Then the emphasis is more on "what are my OTHER windows"
 set -g @catppuccin_window_current_number_color "#{@thm_peach}"
 set -g @catppuccin_window_status_style "basic"
+set -g window-status-separator ''
 
 set -g @catppuccin_window_text "$win_text"
 set -g @catppuccin_window_current_text "$win_text"
@@ -103,8 +104,9 @@ set -gF @thm_text "#{@thm_fg}"
 #------------------------------------------------------------
 # Status Line
 #------------------------------------------------------------
-set -g status-right-length 100
-set -g status-left-length 100
+#TODO: limit status size more, but also truncate limit the directory string as it is the largest component
+set -g status-right-length 110
+set -g status-left-length 50
 set -g status-left ""
 set -g @zoom_icon_color "#{@thm_yellow}"
 set -g status-right "#{?window_zoomed_flag,#[bold]#[fg=#{@thm_mantle}]#[bg=#{E:@zoom_icon_color}] \uf00e #[default] ,}"

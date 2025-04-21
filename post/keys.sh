@@ -25,7 +25,7 @@ split_args='-c "#{pane_current_path}"'
 equalize='select-layout -E'
 
 #TODO: remove debug
-bind u display '#{@escape_nav_keys}'
+bind u show -p
 bind 'C-u' set -gp @escape_nav_keys 0
 
 #------------------------------------------------------------

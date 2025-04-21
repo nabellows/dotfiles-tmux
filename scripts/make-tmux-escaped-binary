@@ -46,7 +46,10 @@ function __do_make_tmux_wrappers() {
 
     function increment_tmux_counter_cmd() {
       local op=$1
-      c_quoted_args '$_TMUX_REAL_PATH' set -pFt '$TMUX_PANE' @escape_nav_keys "#{e|${op}:#{@escape_nav_keys},1}"
+      c_quoted_args '$_TMUX_REAL_PATH' \
+        \; set -pFt '$TMUX_PANE' @escape_nav_keys "#{e|${op}:#{@escape_nav_keys},1}" \
+        \; set -pFt '$TMUX_PANE' "@is_$program" "#{e|${op}:#{@is_$program},1}" \
+        \; run "touch #{@config_dir}/.state/.$program-event"
     }
 
     $CXX -O2 "$src_dir"/wrap.cpp -o "$out_dir/$program" \
