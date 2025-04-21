@@ -10,7 +10,6 @@ fi
 
 tmux source - <<EOF
 
-set -gF @config_dir '#{d:@config_file}'
 set -gF @plugins_dir "$HOME/.tmux/plugins"
 set -gF @scripts "#{@config_dir}/scripts"
 
