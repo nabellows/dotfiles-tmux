@@ -113,7 +113,7 @@ set -g status-right "#{?window_zoomed_flag,#[bold]#[fg=#{@thm_mantle}]#[bg=#{E:@
 set -ag status-right "#{E:@catppuccin_status_directory}"
 set -ag status-right "#{E:@catppuccin_status_application}"
 set -agF status-right "#{E:@catppuccin_status_cpu}"
-set -agF status-right "#{E:@catppuccin_status_battery}"
+if -F '#{@has_battery}' { set -agF status-right "#{E:@catppuccin_status_battery}" }
 set -ag status-right "#{E:@catppuccin_status_session}"
 
 # Ugly-ish but functional

@@ -21,6 +21,12 @@ alexwforsythe/tmux-which-key
 
 "
 
+if [[ $(tmux show -gqv @has_battery -e1) = 1 ]]; then
+  tmux set -ag @tpm_plugins "
+tmux-plugins/tmux-battery
+"
+fi
+
 if [[ ! -d "$TPM_PATH" ]]; then
   # Pretty sure user will never see this since tmux won't have started for them
   tmux display "Installing TPM..."
