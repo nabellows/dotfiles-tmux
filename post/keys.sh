@@ -15,8 +15,12 @@ not_tmux_hacked="#{&&:#{>:#{@escape_nav_keys},0},#{!=:1,#{pane_in_mode}}}"
 
 # As much as I love this version, its incorrect when you don't just literally run 'nvim' or 'fzf' in a way that tmux detects (foreground, man, piping)
 not_tmux_fast="#{&&:#{m/r:^$not_tmux_pattern$,#{pane_current_command}},#{!=:1,#{pane_in_mode}}}"
-# This version seems marginally faster than the other fully compliant one
-not_tmux="pgrep '$not_tmux_pattern' | xargs ps -o tty= -o state= -p | grep -iqE '^#{s|/dev/||:pane_tty} +[^TXZ ]+'"
+if [[ $(uname) == "Darwin" ]]; then
+    # This version seems marginally faster than the other fully compliant one
+    not_tmux="pgrep '$not_tmux_pattern' | xargs ps -o tty= -o state= -p | grep -iqE '^#{s|/dev/||:pane_tty} +[^TXZ ]+'"
+else
+    not_tmux="ps -o state= -o comm= -t '#{pane_tty}' | grep -iqE '^[^TXZ ]+ +(\\S+\\/)?$not_tmux_pattern$'"
+fi
 # So... combine them for fastest nav within nvim/fzf, but slower regular tmux nav :(
 # Works pretty well!
 not_tmux_hybrid="test $not_tmux_fast = 1 || $not_tmux"
@@ -154,9 +158,14 @@ bind % split-window -h
 bind_escapable 'C-\;' last-window
 
 # Ctrl+Alt vim keys for navigating windows
-# Not sure why, but on iterm ctrl+alt is registering as ctrl+shift for these keys
-bind_escapable 'C-H' previous-window
-bind_escapable 'C-L' next-window
+if [[ $(uname) == "Darwin" ]]; then
+    # Not sure why, but on iterm ctrl+alt is registering as ctrl+shift for these keys on mac
+    bind_escapable 'C-H' previous-window
+    bind_escapable 'C-L' next-window
+else
+    bind_escapable 'C-M-h' previous-window
+    bind_escapable 'C-M-l' next-window
+fi
 
 # Shift arrow to switch windows
 bind_escapable 'S-Left'  previous-window

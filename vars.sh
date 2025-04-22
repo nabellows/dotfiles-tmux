@@ -8,6 +8,11 @@ if is_battery_mac ; then
   tmux set -g @has_battery 1
 fi
 
+if [[ -n "$SSH_CONNECTION" ]]; then
+  tmux set -g @is_remote 1
+  tmux setenv -g TMUX_REMOTE 1
+fi
+
 tmux source - <<EOF
 
 set -gF @plugins_dir "$HOME/.tmux/plugins"

@@ -108,6 +108,8 @@ set -gF @thm_text "#{@thm_fg}"
 set -g status-right-length 110
 set -g status-left-length 50
 set -g status-left ""
+# Nostalgic green bar always reminds me I am in SSH
+set -gF status-bg "#{?@is_remote,#{@thm_green},#{@thm_mantle}}" 
 set -g @zoom_icon_color "#{@thm_yellow}"
 set -g status-right "#{?window_zoomed_flag,#[bold]#[fg=#{@thm_mantle}]#[bg=#{E:@zoom_icon_color}] \uf00e #[default] ,}"
 set -ag status-right "#{E:@catppuccin_status_directory}"

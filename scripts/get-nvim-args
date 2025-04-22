@@ -1,3 +1,8 @@
 #!/bin/sh
 tty="$1"
-pgrep 'nvim' | xargs ps -o tty= -o state= -o args= -p | rg "^$tty +(R|S\\S*\\+)(.*)" -m1 -o -r '${2}'
+if [[ $(uname) == "Darwin" ]]; then
+  pgrep 'nvim' | xargs ps -o tty= -o state= -o args= -p | rg "^$tty +[^TXZ ]+(.*)" -m1 -o -r '${1}'
+else
+  ps -o state= -o args= -t "$tty" | rg '^[^TXZ ]+ +(\\S+\\/)?(n?vim .*)' -m1 -o -r '${2}'
+fi
+
