@@ -18,8 +18,6 @@ tmux source - <<EOF
 set -gF @plugins_dir "$HOME/.tmux/plugins"
 set -gF @scripts "#{@config_dir}/scripts"
 
-setenv -gF TMUX_CONFIG_FILE '#{@config_file}'
-setenv -gF TMUX_CONFIG_DIR '#{@config_dir}'
 setenv -gF TMUX_PLUGIN_MANAGER_PATH '#{@plugins_dir}'
 setenv -gF TMUX_PLUGINS_PATH '#{@plugins_dir}'
 setenv -gF TMUX_SCRIPTS_PATH '#{@scripts}'
