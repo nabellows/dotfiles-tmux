@@ -25,7 +25,7 @@ function __do_make_tmux_wrappers() {
   fi
   if [[ -z $CXX ]]; then
     echo "Error: No C++ compiler found (searched ${compilers[@]})"
-    exit 1
+    return 1
   fi
 
   function __do_make_tmux_wrapper() {
@@ -60,7 +60,7 @@ function __do_make_tmux_wrappers() {
       # -DDEBUG
   }
 
-  for prog in "$@"; do __do_make_tmux_wrapper "$prog"; done
+  for prog in "$@"; do __do_make_tmux_wrapper "$prog" || return $?; done
 }
 
 __do_make_tmux_wrappers "$@"
