@@ -30,7 +30,7 @@ equalize='select-layout -E'
 
 #TODO: remove debug
 bind u show -p
-bind 'C-u' set -gp @escape_nav_keys 0
+bind 'C-u' run "tmux show -p | grep -E '@is_($not_tmux_pattern)' | cut -d' ' -f1  | xargs -I{} tmux set -p {} 0; tmux set -p @escape_nav_keys 0"
 
 #------------------------------------------------------------
 # FZF (Ctrl-f/w/= below)
