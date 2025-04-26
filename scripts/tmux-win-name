@@ -24,23 +24,21 @@ function get() {
   tmux display-message -p -t "$window_id" "$@"
 }
 
-#TODO: make all formatting optional
 #TODO: see if there are some common tools to usefully shorten a directory name, or build one
 # preferred logic would shorten to the capital letters and keep a suffix, and maybe render a ... unicode char in place of shortened
-#TODO: I shortened my paths now to only show dir name if inside a WP, decide if I like it
 
 fg_default="fg=#{@thm_subtext_1}"
 bg="#{?window_active,#{@thm_surface_1},#{@thm_surface_0}}"
 lighter_bg="#{?window_active,#{@thm_surface_2},#{@thm_surface_1}}"
+darker_bg="#{?window_active,#{@thm_surface_0},#{@thm_base}}"
 
-# $1 dir $2 #W name $3 curr-cmd (#W is curr-cmd if not renamed)
 current_path=$(get "#{pane_current_path}")
 window_name=$(get "#{window_name}")
 current_command=$(get "#{pane_current_command}")
 tty=$(get "#{s|/dev/||:pane_tty}")
 
 if command -v useful-dir >/dev/null; then
-  dir_text=$(bkt --ttl 20s -- useful-dir "$current_path")
+  dir_text=$(_NO_NICKNAME=1 bkt --ttl 20s -- useful-dir "$current_path")
 else
   #TODO: shorten naively
   dir_text="$current_path"
@@ -52,8 +50,6 @@ if command -v dir-nickname >/dev/null && nickname=$(bkt --ttl 20s -- dir-nicknam
 fi
 full_name="$dir_text - [$current_command]"
 
-# Copied from keys.sh not_tmux logic
-# (Temporary?) workaround for the wrapped shortcomings
 function is-nvim() {
   if [[ $_TMUX_ESCAPE_NAV_ENABLED = 1 && $TMUX_ESCAPED_PROGRAMS = *nvim* ]]; then
     [[ $(get '#{@is_nvim}') -gt 0 ]] || return 1
@@ -67,12 +63,20 @@ function is-nvim() {
 }
 
 details=0
+details_bg="$bg"
 if [[ -n $window_name ]]; then
+  separator=""
+  name_bg="$bg"
+  formatted_name="$window_name"
   if [[ "$window_name" = *: ]]; then
     details=1
+    details_bg="$darker_bg"
     window_name="${window_name[1,-2]}"
+    formatted_name="$window_name#[fg=$details_bg]▐"
+    # name_bg="$lighter_bg"
   fi
-  formatted="#[fg=#{@thm_sapphire},bold,italics,bg=$lighter_bg] $window_name#[fg=$bg]▐#[$fg_default,nobold,italics,bg=$bg]"
+  full_name="$window_name: $full_name"
+  formatted="#[fg=#{@thm_sapphire},bold,italics,bg=$name_bg] $formatted_name#[$fg_default,nobold,italics,bg=$details_bg]"
 else
   formatted=" "
   details=1

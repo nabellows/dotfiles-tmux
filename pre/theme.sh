@@ -6,6 +6,7 @@ CTPN_PLUG_SCRIPT="$CTPN_PLUG_DIR/catppuccin.tmux"
 
 dir_color="#{@thm_lavender}"
 dir_text="#(_NO_NICKNAME=1 useful-dir #{pane_current_path})"
+#TODO: it seems even still with optimizations, it is consuming some energy and cpu. Perhaps explicitly hook into the requirements so that when super idle, it NEVER updates
 win_text="#(_SHORT_PKG=1 FORMATTED=1 #{@scripts}/tmux-win-name '#{window_id}')"
 flavor="${CATPPUCCIN_FLAVOR:-mocha}"
 
@@ -109,7 +110,7 @@ set -g status-right-length 110
 set -g status-left-length 50
 set -g status-left ""
 # Nostalgic green bar always reminds me I am in SSH
-set -gF status-bg "#{?@is_remote,#{@thm_green},#{@thm_mantle}}" 
+set -gF status-bg "#{?@is_remote,#{@thm_green},#{@thm_mantle}}"
 set -g @zoom_icon_color "#{@thm_yellow}"
 set -g status-right "#{?window_zoomed_flag,#[bold]#[fg=#{@thm_mantle}]#[bg=#{E:@zoom_icon_color}] \uf00e #[default] ,}"
 set -ag status-right "#{E:@catppuccin_status_directory}"
