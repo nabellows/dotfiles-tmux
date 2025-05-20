@@ -1,0 +1,13 @@
+#!/bin/sh
+read -r tmux_path is_nvim nvim_server <<EOF
+  $(tmux display -p '#{pane_current_path} #{@is_nvim} #{@nvim_server}')
+EOF
+res=""
+if [ "$is_nvim" = 1 ]; then
+  res="$(nvim --headless --server "$nvim_server" --remote-expr 'v:lua.vim.g.get_root_directory()')"
+fi
+if [ -n "$res" ]; then
+  echo "$res"
+else
+  echo "$tmux_path"
+fi
