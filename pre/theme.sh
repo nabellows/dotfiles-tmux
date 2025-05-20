@@ -73,7 +73,7 @@ set -g @catppuccin_session_color "#{E:#{?client_prefix,#{@thm_pink},$(mode-or-sy
 # Window status
 #------------------------------------------------------------
 # TODO: probably make selected win text omit the dir name since its already present in tmux status line. Then the emphasis is more on "what are my OTHER windows"
-set -g @catppuccin_window_current_number_color "#{@thm_peach}"
+set -g @catppuccin_window_current_number_color "#{?#{m:*focused*,#{client_flags}},#{@thm_peach},#{@thm_lavender}}"
 set -g @catppuccin_window_status_style "basic"
 set -g window-status-separator ''
 
