@@ -205,4 +205,7 @@ bind -T copy-mode-vi y send-keys -X copy-selection-and-cancel
 bind -T copy-mode-vi '[' send-keys -X previous-prompt
 bind -T copy-mode-vi ']' send-keys -X next-prompt
 
+# Lazygit
+bind C-g run-shell "$TMUX_SCRIPTS_PATH/lazygit-popup"
+
 EOF

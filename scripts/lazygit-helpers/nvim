@@ -1,0 +1,10 @@
+#!/bin/bash
+args=()
+for arg in "$@"; do
+  if [[ "$arg" == "--remote-tab" ]]; then
+    args+=("--remote")
+  else
+    args+=("$arg")
+  fi
+done
+$_NVIM_REAL_PATH "${args[@]}" & disown

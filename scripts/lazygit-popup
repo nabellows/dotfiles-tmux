@@ -1,0 +1,28 @@
+#!/bin/bash
+
+read -r is_nvim nvim_server <<EOF
+  $(tmux display -p '#{@is_nvim} #{@nvim_server}')
+EOF
+lg_helper_dir="$TMUX_SCRIPTS_PATH/lazygit-helpers/"
+hack_path="$PATH"
+if [ "$is_nvim" = 1 ]; then
+  # lazygit doesn't use EDITOR/VISUAL but maybe can hack NVIM
+  NVIM="$nvim_server"
+  hack_path="$lg_helper_dir:$PATH"
+fi
+DIR=$("$TMUX_SCRIPTS_PATH/get-cwd") &&
+  # Same tmux-256color issue that is worked around w/ alias in ~/.zshrc
+  tmux popup -E -w 95% -h 95% -T 'lazygit' \
+  -e TERM="screen-256color" \
+  -e DELTA_FEATURES="$DELTA_FEATURES" \
+  -e LG_CONFIG_FILE="$lg_helper_dir/config.yml,$LG_CONFIG_FILE" \
+  -e NVIM="$NVIM" \
+  -e PATH="$hack_path" \
+  -d "$DIR" -- "$TMUX_SCRIPTS_PATH/popup" lazygit
+
+res=$?
+# Hack to allow us to silently kill ourselves
+if [ $res -eq 129 ]; then
+  exit 0
+fi
+exit $res

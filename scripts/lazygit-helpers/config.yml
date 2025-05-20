@@ -1,0 +1,10 @@
+customCommands:
+  - key: "<c-/>"
+    context: "global"
+    command: "tmux popup -C"
+    description: "Quit (technically... kill)"
+  - key: "<c-q>"
+    context: "global"
+    command: "tmux popup -C"
+    description: "Quit (technically... kill)"
+
