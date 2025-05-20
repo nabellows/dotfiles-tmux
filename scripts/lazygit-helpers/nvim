@@ -7,4 +7,6 @@ for arg in "$@"; do
     args+=("$arg")
   fi
 done
-$_NVIM_REAL_PATH "${args[@]}" & disown
+# Not super necessary
+export PATH="${PATH#*lazygit-helpers/:}"
+$_NVIM_REAL_PATH "${args[@]}"

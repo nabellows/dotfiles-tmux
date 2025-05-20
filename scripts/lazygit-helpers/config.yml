@@ -7,4 +7,5 @@ customCommands:
     context: "global"
     command: "tmux popup -C"
     description: "Quit (technically... kill)"
+confirmOnQuit: true
 
