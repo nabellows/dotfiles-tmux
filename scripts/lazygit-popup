@@ -11,17 +11,11 @@ if [ "$is_nvim" = 1 ]; then
   hack_path="$lg_helper_dir:$PATH"
   nvim_args=(-e NVIM="$NVIM" -e PATH="$hack_path")
 fi
-DIR=$("$TMUX_SCRIPTS_PATH/get-cwd") &&
-  # Same tmux-256color issue that is worked around w/ alias in ~/.zshrc
-  tmux popup -E -w 95% -h 95% -T 'lazygit' \
-  -e TERM="screen-256color" \
+"$TMUX_SCRIPTS_PATH/popup"  \
   -e DELTA_FEATURES="$DELTA_FEATURES" \
   -e LG_CONFIG_FILE="$LG_CONFIG_FILE,$lg_helper_dir/config.yml" \
-  -S "fg=$(tmux display -p '#{@thm_lavender}')" \
-  -s "bg=$(tmux display -p '#{@thm_mantle}')" \
-  -d "$DIR" \
   "${nvim_args[@]}" \
-  -- "$TMUX_SCRIPTS_PATH/popup" lazygit
+  -- lazygit || true
 
 res=$?
 # Hack to allow us to silently kill ourselves

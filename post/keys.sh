@@ -3,6 +3,19 @@
 shopt -s expand_aliases
 alias bind='tmux bind'
 
+POPUP="$TMUX_SCRIPTS_PATH/popup"
+POPUP_NVIM_TERM="$TMUX_SCRIPTS_PATH/popup-nvim-term"
+
+# Currently hacked with iTerm remap C-' to <m-;> ... note that it is double quoted here in the sh-syntax area so that it is actually quoted when subbed in tmux heredocs
+PREFIX='M-\;'
+
+tmux unbind C-b
+tmux set -g prefix "$PREFIX"
+# Prefer to use double-prefix for scratch popup, breaking the usual escaped-key pattern
+# which is fine because when do I ever want to send <M-;> ? A non-escaped alternative
+# such that its at least POSSIBLE to send the sequence is fine...
+bind "'" send-prefix
+
 not_tmux_pattern=$(echo "$TMUX_ESCAPED_PROGRAMS" | xargs | tr -s '[:space:]' '|')
 not_tmux_pattern=${not_tmux_pattern%?}
 if [[ -z $not_tmux_pattern ]]; then
@@ -25,20 +38,32 @@ fi
 # Works pretty well!
 not_tmux_hybrid="test $not_tmux_fast = 1 || $not_tmux"
 
-split_args='-c "#{pane_current_path}"'
-equalize='select-layout -E'
-
 #TODO: remove debug
 bind u show -p
 bind 'C-u' run "tmux show -p | grep -E '@is_($not_tmux_pattern)' | cut -d' ' -f1  | xargs -I{} tmux set -p {} 0; tmux set -p @escape_nav_keys 0"
 
+split_args='-c "#{pane_current_path}"'
+equalize='select-layout -E'
+
 #------------------------------------------------------------
-# FZF (Ctrl-f/w/= below)
+# Interesting stuff, fzf, popups...
 #------------------------------------------------------------
-# This isn't working after my refactor, oops, cannot figure out why
-# tmux setenv -g TMUX_FZF_LAUNCH_KEY "C-f"
-# Have a workaround tho
+bind R source -F '#{@config_file}'
 bind "C-f" run -b '#{@fzf_scripts}/../main.sh'
+bind "C-w" run -b "#{@fzf_switch_window}"
+bind "=" run -b "#{@fzf_scripts}/pane.sh layout"
+
+bind "C-Space" run -b "#{@fzf_scripts}/keybinding.sh"
+bind "Space" show-wk-menu-root
+
+bind "$PREFIX" run "$POPUP_NVIM_TERM"
+# Still prefer this version as its marginally more responsive and I don't have much use for nvim-in-nvim
+# Also, the embedded/remote editing is broken in the other for now (TODO, implement)
+bind C-g run "$TMUX_SCRIPTS_PATH/lazygit-popup"
+bind g run "$POPUP_NVIM_TERM lazygit"
+bind b run "$POPUP_NVIM_TERM btm"
+bind C-t run "$POPUP_NVIM_TERM"
+bind C-n run "$POPUP -T nvim nvim-session tmux-popup-win-#{window_id}-nvim"
 
 function bind_escapable() {
     local key="$1"
@@ -139,11 +164,7 @@ for a in "${arrows[@]}"; do
     bind_escapable "M-$a" "$(do_select_pane "$a")"
 done
 
-# = - FZF pane layout
-bind "=" run -b "#{@fzf_scripts}/pane.sh layout"
 bind e "$equalize"
-
-bind "C-s" setw synchronize-panes
 
 # Default pane splitting with no bells/whistles
 bind '"' split-window -v
@@ -171,30 +192,13 @@ fi
 bind_escapable 'S-Left'  previous-window
 bind_escapable 'S-Right' next-window
 
-# Prefix C-x kill window
 bind "C-x" confirm kill-window
-
-# Rename window
-bind r command "rename-window '%%'"
-
-# FZF switch window
-bind "C-w" run -b "#{@fzf_switch_window}"
 
 #------------------------------------------------------------
 # Simple Native Binds
 #------------------------------------------------------------
-tmux source - <<EOF # hello treesitter :)
-
-# Prefix (currently hacked with iTerm remap C-' to m-;
-unbind C-b
-set -g prefix "M-;"
-bind "M-;" send-prefix
-
-bind R source -F '#{@config_file}'
-
-bind "C-Space" run -b "#{@fzf_scripts}/keybinding.sh"
-bind "Space" show-wk-menu-root
-
+bind r command "rename-window '%%'"
+bind "C-s" setw synchronize-panes
 # Copy Mode
 # TODO: better copy mode plugins and workflows
 bind v copy-mode
@@ -205,7 +209,5 @@ bind -T copy-mode-vi y send-keys -X copy-selection-and-cancel
 bind -T copy-mode-vi '[' send-keys -X previous-prompt
 bind -T copy-mode-vi ']' send-keys -X next-prompt
 
-# Lazygit
-bind C-g run-shell "$TMUX_SCRIPTS_PATH/lazygit-popup"
+_TMUX_SOURCE_INSTANT_KEYS=1 source "$HOME/.zshkeys"
 
-EOF

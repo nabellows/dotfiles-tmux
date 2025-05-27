@@ -1,0 +1,5 @@
+#!/bin/bash
+
+name="${1:-scratch}"
+exec "$TMUX_SCRIPTS_PATH/popup" -T "$name" nvim-term-session "tmux-popup-win-$(tmux display -p '#{window_id}')${1:+-$1}" "$@"
+
