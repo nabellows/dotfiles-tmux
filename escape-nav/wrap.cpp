@@ -12,6 +12,9 @@
 #include <utility>
 
 //TODO: fix fzf --become logic being interpreted as "child exited, Exiting regular flow (use better logic than WIFSTOPED)"
+//Not sure the above applies anymore...
+//
+//TODO: perhaps if environment vars fail, can specify an option to skip the wrapper! Useful in cases like fzf-tab-tmux popup which obviously doesn't set TMUX_PANE
 
 #define print_err(...) do { print_debug(__VA_ARGS__); fprintf(stderr, __VA_ARGS__); } while (0)
 #define err_exit(...) do { print_err(__VA_ARGS__); exit(EXIT_FAILURE); } while (0)
@@ -316,7 +319,11 @@ static char** resolve_env(char** cmd) {
         if (cmd[i][0] == '$') {
             char* resolved = getenv(cmd[i] + 1);
             if (!resolved) {
+                #ifdef ENV_ERRORS
                 err_exit("Failed to resolve '%s' from environment\n", cmd[i]);
+                #else
+                return NULL;
+                #endif
             }
             else {
                 print_debug("RESOLVED %s ==> '%s'", cmd[i], resolved);
