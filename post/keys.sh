@@ -64,6 +64,7 @@ bind g run "$POPUP_NVIM_TERM lazygit"
 bind b run "$POPUP_NVIM_TERM btm"
 bind C-t run "$POPUP_NVIM_TERM"
 bind C-n run "$POPUP -T nvim nvim-session tmux-popup-win-#{window_id}-nvim"
+bind C-m run "POPUP_KEY=spt $POPUP_NVIM_TERM spotify_player"
 
 function bind_escapable() {
     local key="$1"
