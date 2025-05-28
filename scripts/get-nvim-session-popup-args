@@ -1,0 +1,36 @@
+#!/bin/bash
+
+usage() {
+  >&2 echo "Usage: $0 <session-key>"
+  exit 1
+}
+[ $# -eq 1 ] || usage
+
+escape-for-vim() {
+  while read -r bind; do
+    if [[ "$bind" =~ \"?(.*[A-Z]-[^\"]+)\"? ]]; then
+      echo "<${BASH_REMATCH[1]}>"
+    else
+      echo "$bind"
+    fi
+  done
+}
+
+sesh="$1"
+if [[ "$sesh" =~ ^tmux-popup-((win-@([0-9]+)-?)?((.*))?)$ ]]; then
+  full_suffix="${BASH_REMATCH[1]}"
+  win_id="${BASH_REMATCH[3]}"
+  tmux_popup_group="${BASH_REMATCH[5]}"
+  # Default window-specific scratch
+  if [[ -n "$win_id" && -z "$tmux_popup_group" ]]; then
+    key_pattern='popup-nvim-term$'
+  else
+    key_pattern="popup +(\S+\s+)*nvim-session +\S+-$tmux_popup_group\"?($| )|POPUP_KEY=$full_suffix |popup-nvim-term +$tmux_popup_group\"?($| +)"
+  fi
+  matching_binds=$(tmux list-keys | rg "$key_pattern" | awk '{print $4}' | escape-for-vim)
+  prefix=$(tmux show -g prefix | awk '{print $2}' | escape-for-vim)
+  for bind in $matching_binds; do
+    printf "%s\n" '-c' "lua require'config.keymaps'.map_all_modes('$prefix$bind', '<cmd>detach<cr>', { desc = 'Detach (nvim session)' })"
+  done
+fi
+
