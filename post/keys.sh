@@ -1,7 +1,8 @@
 #!/bin/bash
 
-shopt -s expand_aliases
-alias bind='tmux bind'
+bind() {
+    tmux 'bind' "$@"
+}
 
 POPUP="$TMUX_SCRIPTS_PATH/popup"
 POPUP_NVIM_TERM="$TMUX_SCRIPTS_PATH/popup-nvim-term"
