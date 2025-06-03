@@ -1,8 +1,11 @@
 #!/bin/bash
+#TODO: this whole file/hack can be deleted (as well as the PATH hack in lazygit-popup) and replaced with the appropriate 'edit' config in config.yml
 args=()
 for arg in "$@"; do
   if [[ "$arg" == "--remote-tab" ]]; then
     args+=("--remote")
+  elif [[ "$arg" == "--remote-send" ]]; then
+    exit
   else
     args+=("$arg")
   fi

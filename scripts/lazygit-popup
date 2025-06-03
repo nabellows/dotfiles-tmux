@@ -3,6 +3,7 @@
 read -r is_nvim nvim_server <<EOF
   $(tmux display -p '#{@is_nvim} #{@nvim_server}')
 EOF
+read -ra prog <<< "${@:-lazygit}"
 lg_helper_dir="$TMUX_SCRIPTS_PATH/lazygit-helpers/"
 nvim_args=()
 if [ "$is_nvim" = 1 ]; then
@@ -15,7 +16,7 @@ fi
   -e DELTA_FEATURES="$DELTA_FEATURES" \
   -e LG_CONFIG_FILE="$LG_CONFIG_FILE,$lg_helper_dir/config.yml" \
   "${nvim_args[@]}" \
-  -- lazygit || true
+  -- "${prog[@]}"
 
 res=$?
 # Hack to allow us to silently kill ourselves

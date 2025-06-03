@@ -25,7 +25,7 @@ if [[ "$sesh" =~ ^tmux-popup-((win-@([0-9]+)-?)?((.*))?)$ ]]; then
   if [[ -n "$win_id" && -z "$tmux_popup_group" ]]; then
     key_pattern='popup-nvim-term$'
   else
-    key_pattern="popup +(\S+\s+)*nvim-session +\S+-$tmux_popup_group\"?($| )|POPUP_KEY=$full_suffix |popup-nvim-term +$tmux_popup_group\"?($| +)"
+    key_pattern="popup +(\S+\s+)*nvim-(term-)?session +\S+-$tmux_popup_group\"?($| )|POPUP_KEY=$full_suffix |popup-nvim-term +$tmux_popup_group\"?($| +)"
   fi
   matching_binds=$(tmux list-keys | rg "$key_pattern" | awk '{print $4}' | escape-for-vim)
   prefix=$(tmux show -g prefix | awk '{print $2}' | escape-for-vim)

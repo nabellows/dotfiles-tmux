@@ -8,4 +8,6 @@ customCommands:
     command: "tmux popup -C"
     description: "Quit (technically... kill)"
 confirmOnQuit: true
+os:
+  editInTerminal: false
 
