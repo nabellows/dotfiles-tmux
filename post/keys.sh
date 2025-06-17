@@ -184,14 +184,15 @@ bind % split-window -h
 bind_escapable 'C-\;' last-window
 
 # Ctrl+Alt vim keys for navigating windows
-if [[ $(uname) == "Darwin" ]]; then
-    # Not sure why, but on iterm ctrl+alt is registering as ctrl+shift for these keys on mac
-    bind_escapable 'C-H' previous-window
-    bind_escapable 'C-L' next-window
-else
-    bind_escapable 'C-M-h' previous-window
-    bind_escapable 'C-M-l' next-window
-fi
+# if [[ $(uname) == "Darwin" ]]; then
+# Uh.... behavior has reversed? Edit: it has reversed back. No tmux/brew updates. Something is unstable here...
+# Not sure why, but on iterm ctrl+alt is registering as ctrl+shift for these keys on mac
+bind_escapable 'C-H' previous-window
+bind_escapable 'C-L' next-window
+# else
+bind_escapable 'C-M-h' previous-window
+bind_escapable 'C-M-l' next-window
+# fi
 
 # Shift arrow to switch windows
 bind_escapable 'S-Left'  previous-window
