@@ -1,6 +1,5 @@
 #include <errno.h>
 #include <signal.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,11 +9,6 @@
 #include <time.h>
 #include <unistd.h>
 #include <utility>
-
-//TODO: fix fzf --become logic being interpreted as "child exited, Exiting regular flow (use better logic than WIFSTOPED)"
-//Not sure the above applies anymore...
-//
-//TODO: perhaps if environment vars fail, can specify an option to skip the wrapper! Useful in cases like fzf-tab-tmux popup which obviously doesn't set TMUX_PANE
 
 #define print_err(...) do { print_debug(__VA_ARGS__); fprintf(stderr, __VA_ARGS__); } while (0)
 #define err_exit(...) do { print_err(__VA_ARGS__); exit(EXIT_FAILURE); } while (0)
@@ -95,7 +89,7 @@ void* my_alloc(int size) {
     return &env_buf[std::exchange(env_buf_index, env_buf_index + size)];
 }
 
-static pid_t do_fork(char** cmd, bool detach=false) {
+static pid_t fork_cmd(char** cmd, bool detach=false) {
     if (cmd && cmd[0]) {
 #if defined(DEBUG)
         if (debug) {
@@ -156,7 +150,7 @@ static void before() {
     print_debug("before");
     if (set_running_flag(true)) {
         print_debug("(is not yet running)");
-        auto pid = do_fork(before_cmd, true);
+        auto pid = fork_cmd(before_cmd, true);
 #ifdef WAIT_BEFORE
         if (res > 0) {
             waitpid(pid, &status, 0);
@@ -173,7 +167,7 @@ static void after() {
         print_debug("(is running)");
         //TODO: to be honest detaching all of these without a cleanup strategy is a bit risky. In reality, probably just at least need a wait on after() even if not before() (or when exiting, a wait on all PIDs)
         //For the current tmux one, its totally fine since there isn't really a way for it to be long lived
-        auto pid = do_fork(after_cmd, true);
+        auto pid = fork_cmd(after_cmd, true);
 #ifdef WAIT_AFTER
         if (res > 0) {
             waitpid(pid, &status, 0);
@@ -189,8 +183,9 @@ static void register_handler(int sig, void(*handler)(int)) {
     sigemptyset(&sa.sa_mask);           /* Reestablish handler */
     sa.sa_flags = SA_RESTART;
     sa.sa_handler = handler;
-    if (sigaction(sig, &sa, NULL) == -1)
+    if (sigaction(sig, &sa, NULL) == -1) {
         err_exit("sigaction for signal %s", strsignal(sig));
+    }
 }
 
 static void tstp_handler(int sig)
@@ -207,8 +202,9 @@ static void tstp_handler(int sig)
         err_exit("no child pid");
     }
 
-    if (signal(SIGTSTP, SIG_DFL) == SIG_ERR)
+    if (signal(SIGTSTP, SIG_DFL) == SIG_ERR) {
         err_exit("signal");              /* Set handling to default */
+    }
 
     raise(SIGTSTP);                     /* Generate a further SIGTSTP */
 
@@ -216,18 +212,19 @@ static void tstp_handler(int sig)
 
     sigemptyset(&tstp_mask);
     sigaddset(&tstp_mask, SIGTSTP);
-    if (sigprocmask(SIG_UNBLOCK, &tstp_mask, &prev_mask) == -1)
+    if (sigprocmask(SIG_UNBLOCK, &tstp_mask, &prev_mask) == -1) {
         err_exit("sigprocmask (change)");
+    }
 
     /* Execution resumes here after SIGCONT */
 
-    if (sigprocmask(SIG_SETMASK, &prev_mask, NULL) == -1)
+    if (sigprocmask(SIG_SETMASK, &prev_mask, NULL) == -1) {
         err_exit("sigprocmask (revert)");         /* Reblock SIGTSTP */
+    }
 
     register_handler(SIGTSTP, tstp_handler);
 }
 
-//TODO: Just forward signals and make sure that the main() exit will stil happen, if so, exit there and cleanup there (with exit codes)
 static constexpr int forwarded_signals[] = {
     SIGHUP, SIGINT, SIGTERM, SIGQUIT, SIGPIPE,
     SIGUSR1, SIGUSR2, SIGALRM, SIGCHLD,
@@ -251,21 +248,19 @@ static void cont_handler(int sig) {
     forward_signal(sig);
 }
 
-static char **parse_command(int argc, char **argv, int *index) {
-    int start = *index;
-    while (*index < argc && strcmp(argv[*index], ";") != 0) {
-        (*index)++;
+static char **parse_command(int argc, char **argv, int& index) {
+    const int start = index;
+    while (index < argc && strcmp(argv[index], ";") != 0) {
+        (index)++;
     }
 
-    if (*index == argc) {
+    if (index == argc) {
         err_exit("Error: Missing ';' terminator for command.\n");
     }
 
-    argv[*index] = NULL; // Null-terminate the command array
-    (*index)++;  // Skip the semicolon
+    argv[index++] = NULL; // Null-terminate the command array (technically undefined/non-standard) and skip semicolon
     return &argv[start];
 }
-
 
 static void parse_args(int argc, char *argv[]) {
     if (argc < 2) {
@@ -276,11 +271,11 @@ static void parse_args(int argc, char *argv[]) {
     while (i < argc) {
         if (strcmp(argv[i], "--before") == 0) {
             i++;
-            before_cmd = parse_command(argc, argv, &i);
+            before_cmd = parse_command(argc, argv, i);
         } else
         if (strcmp(argv[i], "--after") == 0) {
             i++;
-            after_cmd = parse_command(argc, argv, &i);
+            after_cmd = parse_command(argc, argv, i);
         } else {
             break;
         }
@@ -351,6 +346,25 @@ static char** resolve_env(char** cmd) {
     return cmd;
 }
 
+// Last-ditch cleanup_pid, disowned and polling for this process
+static void cleanup_process() {
+    const pid_t setsid_res = setsid();
+    print_debug("setsid: %d", setsid_res);
+    pid_t ppid;
+    // ppid 1 is the 'init' procces. thanks chat gpt
+    while ((ppid=getppid()) > 1) {
+        print_debug("parent alive: %d", ppid);
+        #if (CLEANUP_POLL_PERIOD_MILLIS >= 1000 && CLEANUP_POLL_PERIOD_MILLIS % 1000 < 100)
+            sleep(CLEANUP_POLL_PERIOD_MILLIS / 1000);
+        #else
+            sleep_millis(CLEANUP_POLL_PERIOD_MILLIS);
+        #endif
+    }
+    print_debug("CLEANUP");
+    kill(child_pid, SIGTERM);
+    after();
+}
+
 int main(int argc, char *argv[]) {
 #ifdef DEBUG
     debug = getenv("DEBUG");
@@ -394,29 +408,14 @@ int main(int argc, char *argv[]) {
 
     before();
 
-    child_pid = do_fork(wrapped_cmd);
+    child_pid = fork_cmd(wrapped_cmd);
     cleanup_pid = fork();
-    int status;
-    // Last-ditch cleanup_pid, disowned and polling for this process
     if (cleanup_pid == 0) {
-        pid_t setsid_res = setsid();
-        print_debug("setsid: %d", setsid_res);
-        pid_t ppid;
-        // ppid 1 is the 'init' procces. thanks chat gpt
-        while ((ppid=getppid()) > 1) {
-            print_debug("parent alive: %d", ppid);
-            #if (CLEANUP_POLL_PERIOD_MILLIS >= 1000 && CLEANUP_POLL_PERIOD_MILLIS % 1000 < 100)
-                sleep(CLEANUP_POLL_PERIOD_MILLIS / 1000);
-            #else
-                sleep_millis(CLEANUP_POLL_PERIOD_MILLIS);
-            #endif
-        }
-        print_debug("CLEANUP");
-        kill(child_pid, SIGTERM);
-        after();
+        cleanup_process();
     }
     // Healthy exit strategy
     else {
+        int status;
         do {
             print_debug("starting wait for child");
             if (waitpid(child_pid, &status, WUNTRACED) == -1) {
