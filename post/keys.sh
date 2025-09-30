@@ -67,7 +67,8 @@ bind C-g run "$TMUX_SCRIPTS_PATH/lazygit-popup"
 bind g run "$TMUX_SCRIPTS_PATH/lazygit-popup nvim-term-session $POPUP_WIN_SESH-lazygit lazygit"
 bind b run "$POPUP_NVIM_TERM btm"
 bind C-t run "$POPUP_NVIM_TERM"
-bind C-n run "$POPUP -T nvim nvim-session $POPUP_WIN_SESH-nvim"
+bind C-a run "$POPUP_NVIM_TERM q"
+bind n run "$POPUP -T nvim nvim-session $POPUP_WIN_SESH-nvim"
 bind C-m run "POPUP_KEY=spt $POPUP_NVIM_TERM spotify_player"
 
 function bind_escapable() {
@@ -197,6 +198,12 @@ bind_escapable 'C-M-l' next-window
 # Shift arrow to switch windows
 bind_escapable 'S-Left'  previous-window
 bind_escapable 'S-Right' next-window
+
+# Move windows
+bind C-p swapw -t -1 -d
+bind C-n swapw -t +1 -d
+
+bind C-c new-window -a # New win at next index
 
 bind "C-x" confirm kill-window
 
