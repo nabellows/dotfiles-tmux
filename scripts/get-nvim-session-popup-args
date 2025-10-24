@@ -13,7 +13,7 @@ escape-for-vim() {
     else
       echo "$bind"
     fi
-  done
+  done | rg --passthrough "'" -r "\'"
 }
 
 sesh="$1"
@@ -29,7 +29,7 @@ if [[ "$sesh" =~ ^tmux-popup-((win-@([0-9]+)-?)?((.*))?)$ ]]; then
   fi
   matching_binds=$(tmux list-keys | rg "$key_pattern" | awk '{print $4}' | escape-for-vim)
   prefix=$(tmux show -g prefix | awk '{print $2}' | escape-for-vim)
-  for bind in $matching_binds; do
+  for bind in $matching_binds $prefix; do
     printf "%s\n" '-c' "lua require'config.keymaps'.map_all_modes('$prefix$bind', '<cmd>detach<cr>', { desc = 'Detach (nvim session)' })"
   done
 fi
