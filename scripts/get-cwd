@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 read -r tmux_path is_nvim nvim_server <<EOF
   $(tmux display -p '#{pane_current_path} #{@is_nvim} #{@nvim_server}')
 EOF

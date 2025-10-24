@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 is_battery_mac() {
   [[ "$(uname)" == "Darwin" ]] && pmset -g batt | grep -q "Battery"

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 name="${1:-scratch}"
 key="${POPUP_KEY:-"win-$(tmux display -p '#{window_id}')${1:+-$1}"}"

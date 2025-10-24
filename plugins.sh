@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 #TODO: https://github.com/tmux-plugins/tmux-copycat
 #TODO: https://github.com/laktak/extrakto

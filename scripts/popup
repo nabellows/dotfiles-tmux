@@ -1,5 +1,9 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
+#TODO: somehow capture exit status and all of stdout without removing the -E flag. Might be something like replacing the command
+# with shell "out=$($@ 2>&1) || tmux display \"$out\"" etc..
+# Currently no way to see why popups sometimes silently fail and exit
+# tmux popup 'bash -c "your-command || (echo -e \"\n❌ Command failed. Press enter to close...\"; read)"'
 DIR=$("$TMUX_SCRIPTS_PATH/get-cwd") &&
   exec tmux popup -E -w 95% -h 95% -T "${@: -1}" \
   -S "fg=$(tmux display -p '#{@thm_lavender}')" \
@@ -8,4 +12,10 @@ DIR=$("$TMUX_SCRIPTS_PATH/get-cwd") &&
   -e TMUX_POPUP=1 \
   -d "$DIR" \
   "$@"
+  # This works great but breaks the instances that try to pass -T (before it was implicitly letting you just pass $@ since tmux popup will parse the options for you, but now I've explicitly started the "command")
+  # "$TMUX_SCRIPTS_PATH/popup-exit-guard" "$@"
+
+  # Will invoke bash startup overhead...
+  # Doesn't actually runn the command right? But close
+  # "$* || (echo -e \"\n❌ Command failed. Press enter to close...\"; read)"
 

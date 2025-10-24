@@ -1,2 +1,2 @@
-#!/bin/bash
+#!/usr/bin/env bash
 exec tmux send-keys "$(printf '\033[200~')$*$(printf '\033[201~')"

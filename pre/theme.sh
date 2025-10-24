@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Yes, ik its gross, its because the repo is catppuccin as prefix instead of suffix ('catppuccin/tmux')
 CTPN_PLUG_DIR="$TMUX_PLUGINS_PATH/tmux/"

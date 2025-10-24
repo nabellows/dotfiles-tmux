@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 tty="$1"
 if [[ $(uname) == "Darwin" ]]; then
   pgrep 'nvim' | xargs ps -o tty= -o state= -o args= -p | rg "^$tty +[^TXZ ]+(.*)" -m1 -o -r '${1}'
