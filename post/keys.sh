@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 bind() {
     tmux 'bind' "$@"
@@ -9,7 +9,8 @@ POPUP_NVIM_TERM="$TMUX_SCRIPTS_PATH/popup-nvim-term"
 POPUP_WIN_SESH="tmux-popup-win-#{window_id}"
 
 # Currently hacked with iTerm remap C-' to <m-;> ... note that it is double quoted here in the sh-syntax area so that it is actually quoted when subbed in tmux heredocs
-PREFIX='M-\;'
+# PREFIX='M-\;'
+PREFIX="C-'" # Ghostty is superior
 
 tmux unbind C-b
 tmux set -g prefix "$PREFIX"
