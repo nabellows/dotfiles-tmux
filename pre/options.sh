@@ -11,7 +11,7 @@ set-window-option -g mode-keys vi
 set -g status-keys emacs
 
 set -sg escape-time 0
-set -g status-interval 2
+set -g status-interval 4
 
 # Start windows and panes at 1, not 0
 set -g base-index 1
