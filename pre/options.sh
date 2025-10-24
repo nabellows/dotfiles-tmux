@@ -1,9 +1,13 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 tmux source - <<EOF
 
 set -g mouse on
 set -sg extended-keys on
+set -sg extended-keys-format xterm
+
+set -sg allow-passthrough all
+
 set -g focus-events on
 set -g set-clipboard on
 set-window-option -g mode-keys vi
