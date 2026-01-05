@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!/usr/bin/env bash
 #
 #TODO: use #[push-default] and #[default] here and in theme where possible to be robust (rather than stuff like fg=white)
 #TODO: take inspiration or migrate to https://github.com/ofirgall/tmux-window-name?tab=readme-ov-file#Inter#sections
@@ -9,9 +9,12 @@ if ! command -v bkt >&/dev/null; then
   bkt() {
     while [[ ! "$1" == "--" ]]; do shift; done
     shift
-    $@
+    "$@"
   }
 fi
+
+# Note how much less CPU used when you stub it like this. The variable lookup (recursive) is costly
+# tmux() { :;  }
 
 # Determine window ID
 if [ -z "$1" ]; then
@@ -29,7 +32,7 @@ function get() {
 
 fg_default="fg=#{@thm_subtext_1}"
 bg="#{?window_active,#{@thm_surface_1},#{@thm_surface_0}}"
-lighter_bg="#{?window_active,#{@thm_surface_2},#{@thm_surface_1}}"
+# lighter_bg="#{?window_active,#{@thm_surface_2},#{@thm_surface_1}}"
 darker_bg="#{?window_active,#{@thm_surface_0},#{@thm_base}}"
 
 current_path=$(get "#{pane_current_path}")
@@ -53,9 +56,9 @@ full_name="$dir_text - [$current_command]"
 function is-nvim() {
   if [[ $_TMUX_ESCAPE_NAV_ENABLED = 1 && $TMUX_ESCAPED_PROGRAMS = *nvim* ]]; then
     [[ $(get '#{@is_nvim}') -gt 0 ]] || return 1
-    nvim_args=($(bkt --ttl 20s --discard-failures --modtime $TMUX_CONFIG_DIR/.state/.nvim-event -- $TMUX_SCRIPTS_PATH/get-nvim-args $tty))
+    nvim_args=($(bkt --ttl 20s --discard-failures --modtime "$TMUX_CONFIG_DIR"/.state/.nvim-event -- "$TMUX_SCRIPTS_PATH"/get-nvim-args "$tty"))
   else
-    nvim_args=($(bkt --ttl 3s --discard-failures -- $TMUX_SCRIPTS_PATH/get-nvim-args $tty))
+    nvim_args=($(bkt --ttl 3s --discard-failures -- "$TMUX_SCRIPTS_PATH"/get-nvim-args "$tty"))
   fi
   local res=$?
   nvim_file=${nvim_args[2]}
@@ -65,7 +68,6 @@ function is-nvim() {
 details=0
 details_bg="$bg"
 if [[ -n $window_name ]]; then
-  separator=""
   name_bg="$bg"
   formatted_name="$window_name"
   if [[ "$window_name" = *: ]]; then
@@ -85,7 +87,7 @@ fi
 if ((details)); then
   if is-nvim; then
     formatted+="#[fg=#{@thm_green},]${nvim_file:+ $nvim_file}#[$fg_default,italics] $dir_color_short#[noitalics]"
-  elif [[ "$current_command" =~ "zsh|bash" ]]; then
+  elif [[ "$current_command" =~ zsh|bash ]]; then
     formatted+="#[$fg_default,italics]$dir_color_short#[noitalics]"
   else
     formatted+="#[fg=#{@thm_teal},bold]$current_command#[$fg_default,italics,nobold] $dir_color_short#[noitalics]"
@@ -95,12 +97,12 @@ formatted+="#{?window_zoomed_flag, #[bold]#[fg=#{E:@zoom_icon_color}]#[nobold
 formatted+="#{?pane_in_mode, #[bold]#[fg=#{E:@mode_color}]#(echo #{pane_mode} | cut -c1 | tr a-z A-Z)#[nobold]#[$fg_default],}"
 formatted+="#{?pane_synchronized, #[bold]#[fg=#{E:@sync_color}]S!#[nobold]#[$fg_default],}"
 
-tmux set-window-option -t $window_id @my_window_name_formatted "$(printf "$formatted")" # printf for unicode escape
-tmux set-window-option -t $window_id @my_window_name "$full_name"
-tmux set-window-option -t $window_id @my_window_index "$full_name"
+tmux set-window-option -t "$window_id" @my_window_name_formatted "$(printf %s "$formatted")" # printf for unicode escape
+tmux set-window-option -t "$window_id" @my_window_name "$full_name"
+tmux set-window-option -t "$window_id" @my_window_index "$full_name"
 
-if [[ $FORMATTED = 1 ]]; then
-  printf "$formatted"
+if [[ "${FORMATTED:-0}" = 1 ]]; then
+  printf %s "$formatted"
 else
   echo -e "$full_name"
 fi

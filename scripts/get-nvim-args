@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+#TODO: Couldn't I push this into magical wrapper? Or just talk via socket? Or even nvim autocommand/startup
+# nvim --server $NVIM/#{@nvim_server} --headless --remote-expr 'json_encode(argv())' (or luaeval("..."))
 tty="$1"
 if [[ $(uname) == "Darwin" ]]; then
   pgrep 'nvim' | xargs ps -o tty= -o state= -o args= -p | rg "^$tty +[^TXZ ]+(.*)" -m1 -o -r '${1}'
